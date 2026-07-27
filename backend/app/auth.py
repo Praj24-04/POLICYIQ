@@ -82,3 +82,23 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         return user
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency that restricts access to admin-role users only."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+# ── Activity Logging ───────────────────────────────────────────────────────
+def log_activity(user_id: int, user_email: str, action: str, detail: str = "", ip: str = ""):
+    """Write a unified audit trail entry to activity_logs."""
+    try:
+        conn = get_connection()
+        conn.execute(
+            "INSERT INTO activity_logs (user_id, user_email, action, detail, ip_address) VALUES (%s, %s, %s, %s, %s)",
+            (user_id, user_email, action, detail, ip)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[WARN] Failed to log activity: {e}")

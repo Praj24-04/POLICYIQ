@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app.auth import (
     hash_password, verify_password,
     create_access_token, create_reset_token, verify_reset_token,
-    get_current_user, get_user_by_email
+    get_current_user, get_user_by_email, log_activity
 )
 from app.database import get_connection
 from app.email_service import send_reset_email
 from app.models.schemas import (
     RegisterRequest, LoginRequest, GoogleLoginRequest,
     ForgotPasswordRequest, ResetPasswordRequest,
+    ChangePasswordRequest, UpdateProfileRequest,
     TokenResponse, UserOut
 )
 from datetime import datetime
@@ -46,6 +47,9 @@ def register(req: RegisterRequest, request: Request):
     conn.close()
 
     token = create_access_token({"sub": str(row["id"]), "role": row["role"]})
+
+    log_activity(row["id"], row["email"], "register", "New account created", request.client.host if request.client else "")
+
     return TokenResponse(
         access_token=token,
         user=UserOut(**row)
@@ -60,6 +64,9 @@ def login(req: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     token = create_access_token({"sub": str(user["id"]), "role": user["role"]})
+
+    log_activity(user["id"], user["email"], "login", "Email/password login", request.client.host if request.client else "")
+
     return TokenResponse(
         access_token=token,
         user=UserOut(
@@ -139,6 +146,43 @@ def reset_password(req: ResetPasswordRequest):
 
     return {"message": "Password updated successfully. You can now log in."}
 
+# ── Change Password ─────────────────────────────────────────────────────────
+@router.post("/change-password")
+def change_password(req: ChangePasswordRequest, current_user: dict = Depends(get_current_user)):
+    # Verify old password
+    if not verify_password(req.old_password, current_user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Incorrect current password.")
+
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=422, detail="New password must be at least 6 characters.")
+
+    new_hash = hash_password(req.new_password)
+    conn = get_connection()
+    conn.execute("UPDATE users SET password_hash = %s WHERE id = %s", (new_hash, current_user["id"]))
+    conn.commit()
+    conn.close()
+
+    log_activity(current_user["id"], current_user["email"], "password_change", "Password changed")
+
+    return {"message": "Password changed successfully."}
+
+# ── Update Profile ──────────────────────────────────────────────────────────
+@router.post("/update-profile", response_model=UserOut)
+def update_profile(req: UpdateProfileRequest, current_user: dict = Depends(get_current_user)):
+    name = req.full_name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty.")
+
+    conn = get_connection()
+    cur = conn.execute(
+        "UPDATE users SET full_name = %s WHERE id = %s RETURNING id, email, full_name, role, created_at",
+        (name, current_user["id"])
+    )
+    row = dict(cur.fetchone())
+    conn.commit()
+    conn.close()
+    return UserOut(**row)
+
 # ── User History ────────────────────────────────────────────────────────────
 @router.get("/history")
 def get_history(current_user: dict = Depends(get_current_user)):
@@ -214,6 +258,9 @@ def login_with_google(req: GoogleLoginRequest):
 
     # 5. Create system token
     token = create_access_token({"sub": str(user["id"]), "role": user["role"]})
+
+    log_activity(user["id"], user["email"], "google_login", "Google OAuth login")
+
     return TokenResponse(
         access_token=token,
         user=UserOut(

@@ -2,23 +2,45 @@ import json
 from collections import Counter
 from app.database import get_connection
 
+def canonicalize_country(name):
+    if not name:
+        return None
+    n = name.strip()
+    nl = n.lower()
+    if nl == "united states of america" or nl == "usa" or nl == "us" or nl == "united states":
+        return "United States"
+    if nl == "united kingdom" or nl == "uk":
+        return "United Kingdom"
+    if nl == "south korea" or nl == "korea" or nl == "republic of korea":
+        return "South Korea"
+    return n
+
 def get_country_distribution():
     conn = get_connection()
     rows = conn.execute("SELECT country, extracted_countries_cache FROM policies").fetchall()
     conn.close()
     counts = Counter()
     for r in rows:
+        policy_countries = set()
+        
+        primary_country = canonicalize_country(r["country"])
+        if primary_country:
+            policy_countries.add(primary_country)
+            
         cached_str = r["extracted_countries_cache"]
         if cached_str:
             try:
-                countries = json.loads(cached_str)
-                for c in countries:
-                    counts[c] += 1
-                continue
+                extracted = json.loads(cached_str)
+                for c in extracted:
+                    c_canon = canonicalize_country(c)
+                    if c_canon:
+                        policy_countries.add(c_canon)
             except Exception:
                 pass
-        if r["country"]:
-            counts[r["country"]] += 1
+                
+        for c in policy_countries:
+            counts[c] += 1
+            
     return dict(counts)
 
 def get_sector_distribution():

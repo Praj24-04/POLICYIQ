@@ -374,7 +374,7 @@ export default function Login({ onLogin }) {
       backgroundImage: "radial-gradient(rgba(163,230,53,0.04) 1px, transparent 1px)",
       backgroundSize: "24px 24px",
     }}>
-      <div style={{ width: 420 }}>
+      <div style={{ maxWidth: 420, width: "100%", padding: "0 16px" }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{

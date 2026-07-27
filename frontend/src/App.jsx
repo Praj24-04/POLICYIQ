@@ -13,9 +13,11 @@ import Login from "./pages/Login";
 import GeneratePolicy from "./pages/GeneratePolicy";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -50,10 +52,18 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-deep)" }}>
-        <Sidebar user={user} onLogout={handleLogout} />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh" }}>
-          <DashboardNavbar user={user} />
+      <div className="app-shell">
+        <Sidebar
+          user={user}
+          onLogout={handleLogout}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+        <div className="app-main">
+          <DashboardNavbar
+            user={user}
+            onMenuToggle={() => setSidebarOpen(prev => !prev)}
+          />
           <main style={{ flex: 1, overflowY: "auto" }}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -64,7 +74,13 @@ export default function App() {
               <Route path="/recommend" element={<Recommend />} />
               <Route path="/upload" element={<UploadPolicy />} />
               <Route path="/generate" element={<GeneratePolicy />} />
-              <Route path="/profile" element={<Profile user={user} />} />
+              <Route path="/profile" element={<Profile user={user} onUserUpdate={(updated) => {
+                setUser(updated);
+                localStorage.setItem("user", JSON.stringify(updated));
+              }} />} />
+              <Route path="/admin" element={
+                user.role === "admin" ? <AdminDashboard /> : <Navigate to="/" />
+              } />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

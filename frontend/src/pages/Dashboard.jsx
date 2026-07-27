@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { fetchOverview, fetchSectorDist, fetchRegionDist, fetchTrends, fetchCountries, BASE } from "../services/api";
+import { useNavigate } from "react-router-dom";
+import { fetchOverview, fetchSectorDist, fetchRegionDist, fetchTrends, fetchCountries, fetchPolicies, BASE } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { FileText, Globe, Layers, Map, RotateCw } from "lucide-react";
+import { FileText, Globe, Layers, Map, RotateCw, X } from "lucide-react";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, CartesianGrid
@@ -48,6 +49,7 @@ const getCountryData = (geoName, allCountriesObj) => {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [overview,     setOverview]     = useState(null);
   const [sectors,      setSectors]      = useState([]);
   const [trends,       setTrends]       = useState([]);
@@ -58,7 +60,48 @@ export default function Dashboard() {
   const [fetching,     setFetching]     = useState(false);
   const [progress,     setProgress]     = useState({ status: "idle" });
   const [hoveredRegion, setHoveredRegion] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [fetchHover,   setFetchHover]   = useState(false);
+
+  // Map drill-down states
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [countryPolicies, setCountryPolicies] = useState([]);
+  const [loadingPolicies, setLoadingPolicies] = useState(false);
+
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setSelectedCountry(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleRegionClick = (geoName) => {
+    let targetCountry = geoName;
+    if (geoName === "United States of America") targetCountry = "United States";
+    if (geoName === "United Kingdom") targetCountry = "UK";
+    if (geoName === "South Korea") targetCountry = "South Korea";
+
+    const policyCount = getCountryData(geoName, allCountries);
+    if (policyCount <= 0) return;
+
+    setSelectedCountry(targetCountry);
+    setLoadingPolicies(true);
+
+    fetchPolicies({ country: targetCountry })
+      .then(data => {
+        setCountryPolicies(data || []);
+        setLoadingPolicies(false);
+      })
+      .catch(err => {
+        console.error("Error fetching country policies:", err);
+        setCountryPolicies([]);
+        setLoadingPolicies(false);
+      });
+  };
 
   useEffect(() => {
     Promise.all([
@@ -150,12 +193,7 @@ export default function Dashboard() {
       background: "var(--bg-deep)",
       minHeight: "100vh"
     }}>
-      <div style={{
-        maxWidth: "1280px",
-        margin: "0 auto",
-        padding: "32px 40px",
-        width: "100%"
-      }}>
+      <div className="page-container">
         {/* Page Header */}
         <div className="fade-up" style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
@@ -181,7 +219,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stat Cards Row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+        <div className="stat-cards-grid-custom">
           {[
             { label: "Total Policies", value: overview?.total_policies, sub: "Across all sectors", Icon: FileText, delay: 1 },
             { label: "Countries Covered", value: overview?.total_countries, sub: "Unique jurisdictions", Icon: Globe, delay: 2 },
@@ -461,7 +499,7 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginTop: "0px" }}>
+        <div className="responsive-equal-two-col-grid" style={{ marginTop: "0px" }}>
           
           {/* Sector Distribution */}
           <div className="fade-up fade-up-2" style={{
@@ -472,7 +510,7 @@ export default function Dashboard() {
             boxShadow: "none",
             marginBottom: "20px"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <div style={{ 
                   display: "inline-block", 
@@ -515,7 +553,7 @@ export default function Dashboard() {
                 </span>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div className="sector-dist-layout-custom">
               <ResponsiveContainer width="50%" height={220}>
                 <PieChart>
                   <Pie data={sectors} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85}>
@@ -550,7 +588,7 @@ export default function Dashboard() {
             display: "flex",
             flexDirection: "column"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <div style={{ 
                   display: "inline-block", 
@@ -618,13 +656,21 @@ export default function Dashboard() {
                           strokeWidth={0.5}
                           style={{
                              default: { outline: "none" },
-                             hover: { fill: policyCount > 0 ? "#65a30d" : "var(--border-lit)", outline: "none", cursor: "pointer" },
+                             hover: { fill: policyCount > 0 ? "#65a30d" : "var(--border-lit)", outline: "none", cursor: policyCount > 0 ? "pointer" : "default" },
                              pressed: { outline: "none" },
                           }}
                           onMouseEnter={() => {
                             setHoveredRegion({ name: countryName, count: policyCount });
                           }}
+                          onMouseMove={(e) => {
+                            const rect = e.currentTarget.parentElement.parentElement.getBoundingClientRect();
+                            setTooltipPos({
+                              x: e.clientX - rect.left,
+                              y: e.clientY - rect.top
+                            });
+                          }}
                           onMouseLeave={() => setHoveredRegion(null)}
+                          onClick={() => handleRegionClick(countryName)}
                         />
                       );
                     });
@@ -634,10 +680,12 @@ export default function Dashboard() {
 
               {hoveredRegion && (
                 <div style={{
-                  position: "absolute", bottom: -10, left: 0,
+                  position: "absolute",
+                  left: tooltipPos.x + 12,
+                  top: tooltipPos.y + 12,
                   background: "var(--bg-card)", border: "1px solid var(--border)",
                   padding: "8px 12px", borderRadius: 8, pointerEvents: "none",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+                  boxShadow: "0 4px 14px rgba(0, 0, 0, 0.12)",
                   zIndex: 10
                 }}>
                   <div style={{ fontSize: 11, fontFamily: "DM Sans", color: "var(--text-muted)", marginBottom: 2 }}>{hoveredRegion.name}</div>
@@ -661,7 +709,7 @@ export default function Dashboard() {
             boxShadow: "none",
             marginBottom: "20px"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <div style={{ 
                   display: "inline-block", 
@@ -727,7 +775,7 @@ export default function Dashboard() {
             boxShadow: "none",
             marginBottom: "20px"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <div style={{ 
                   display: "inline-block", 
@@ -806,9 +854,175 @@ export default function Dashboard() {
               })}
             </div>
           </div>
+ 
+         </div>
+       </div>
 
+      {/* Sidebar Panel Backdrop Blur */}
+      {selectedCountry && (
+        <div 
+          onClick={() => setSelectedCountry(null)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.4)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            zIndex: 100,
+            animation: "fadeIn 0.25s ease-out"
+          }}
+        />
+      )}
+
+      {/* Sidebar Panel Overlay */}
+      {selectedCountry && (
+        <div className="dashboard-sidebar-panel" style={{
+          background: "var(--bg-card)",
+          borderLeft: "1px solid var(--border)",
+          boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.2)",
+          padding: "32px",
+          display: "flex",
+          flexDirection: "column",
+          animation: "slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+          textAlign: "left"
+        }}>
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#5c9e2e" }} />
+                <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  JURISDICTION DRILL-DOWN
+                </span>
+              </div>
+              <h2 style={{ fontFamily: "DM Sans", fontSize: "24px", fontWeight: 700, color: "var(--text-main)", margin: 0 }}>
+                {selectedCountry}
+              </h2>
+            </div>
+            <button 
+              onClick={() => setSelectedCountry(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                padding: "8px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--bg-hover)";
+                e.currentTarget.style.color = "var(--text-main)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "none";
+                e.currentTarget.style.color = "var(--text-muted)";
+              }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Subtitle */}
+          <div style={{ 
+            fontSize: "13px", 
+            fontFamily: "DM Sans", 
+            color: "var(--text-muted)", 
+            marginBottom: "24px",
+            borderBottom: "1px solid var(--border)",
+            paddingBottom: "12px"
+          }}>
+            Showing {countryPolicies.length} {countryPolicies.length === 1 ? 'policy' : 'policies'} from the database
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px" }}>
+            {loadingPolicies ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "200px" }}>
+                <RotateCw className="spin-icon" size={24} color="#5c9e2e" style={{ marginBottom: "12px" }} />
+                <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>
+                  Fetching policies...
+                </span>
+              </div>
+            ) : countryPolicies.length === 0 ? (
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-muted)", fontFamily: "DM Sans" }}>
+                No active policies found for this region.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {countryPolicies.map((policy) => (
+                  <div 
+                    key={policy.id}
+                    onClick={() => {
+                      setSelectedCountry(null);
+                      navigate(`/policies/${policy.id}`);
+                    }}
+                    style={{
+                      background: "var(--bg-hover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      padding: "16px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      textAlign: "left"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "var(--text-main)";
+                      e.currentTarget.style.transform = "translateY(-1.5px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "var(--border)";
+                      e.currentTarget.style.transform = "none";
+                    }}
+                  >
+                    <div style={{ 
+                      fontSize: "10px", 
+                      fontFamily: "JetBrains Mono", 
+                      color: "#5c9e2e", 
+                      fontWeight: 600, 
+                      letterSpacing: "0.05em",
+                      marginBottom: "6px",
+                      display: "flex",
+                      justifyContent: "space-between"
+                    }}>
+                      <span>{policy.sector.toUpperCase()}</span>
+                      {policy.year && <span>{policy.year}</span>}
+                    </div>
+                    <h3 style={{ 
+                      fontFamily: "DM Sans", 
+                      fontSize: "14px", 
+                      fontWeight: 600, 
+                      color: "var(--text-main)",
+                      margin: "0 0 8px 0",
+                      lineHeight: "1.3"
+                    }}>
+                      {policy.title}
+                    </h3>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", fontFamily: "DM Sans" }}>
+                      <span style={{ 
+                        background: "rgba(92, 158, 46, 0.08)", 
+                        color: "#5c9e2e", 
+                        padding: "2px 8px", 
+                        borderRadius: "12px",
+                        fontWeight: 600
+                      }}>
+                        {policy.status || "Active"}
+                      </span>
+                      <span style={{ color: "var(--text-muted)" }}>View details &rarr;</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

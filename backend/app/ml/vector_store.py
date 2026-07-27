@@ -1,30 +1,19 @@
 import sys
 import numpy as np
-import chromadb
-from pathlib import Path
-
-# Setup paths to ensure we can import app modules properly
-_backend_root = Path(__file__).parent.parent.parent
-if str(_backend_root) not in sys.path:
-    sys.path.insert(0, str(_backend_root))
-
-from app.database import get_connection
-from app.ml.embedding_store import get_embedding
-
-# 1. Initialize ChromaDB PersistentClient
-chroma_path = _backend_root / "data" / "chroma_db"
-chroma_path.parent.mkdir(parents=True, exist_ok=True)
-
-client = chromadb.PersistentClient(path=str(chroma_path))
-
-# 2. Get or create collection "policies_v2" with metadata hnsw:space set to cosine
 try:
+    import chromadb
+    chroma_path = _backend_root / "data" / "chroma_db"
+    chroma_path.parent.mkdir(parents=True, exist_ok=True)
+    client = chromadb.PersistentClient(path=str(chroma_path))
     collection = client.get_or_create_collection(
         name="policies_v2",
         metadata={"hnsw:space": "cosine"}
     )
 except Exception as e:
-    print(f"[ERROR] Failed to initialize policies_v2 collection on module load: {e}")
+    client = None
+    collection = None
+    print(f"[WARN] ChromaDB initialization skipped/failed: {e}")
+    client = None
     collection = None
 
 

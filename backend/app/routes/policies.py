@@ -11,13 +11,14 @@ def get_policies(
     region: Optional[str] = None,
     search: Optional[str] = None,
     status: Optional[str] = None,
+    country: Optional[str] = None,
 ):
-    cache_key = f"policies:{sector}:{region}:{search}:{status}"
+    cache_key = f"policies:{sector}:{region}:{search}:{status}:{country}"
     cached = backend_cache.get(cache_key)
     if cached is not None:
         return cached
 
-    res = load_policies(sector=sector, region=region, search=search, status=status)
+    res = load_policies(sector=sector, region=region, search=search, status=status, country=country)
     backend_cache.set(cache_key, res)
     return res
 
@@ -28,11 +29,30 @@ def get_sectors():
     if cached is not None:
         return cached
 
+    default_sectors = {
+        "AI Governance", "Cybersecurity", "Data Privacy",
+        "Healthcare AI", "Financial Regulation",
+        "POSH Policies", "ESG Policies", "IoT and Robotics"
+    }
+
     from app.database import get_connection
     conn = get_connection()
-    rows = conn.execute("SELECT DISTINCT sector FROM policies").fetchall()
-    conn.close()
-    res = [r["sector"] for r in rows]
+    try:
+        rows = conn.execute("SELECT DISTINCT sector FROM policies WHERE sector IS NOT NULL").fetchall()
+        for r in rows:
+            if r["sector"]:
+                default_sectors.add(r["sector"].strip())
+        
+        custom_rows = conn.execute("SELECT name FROM custom_sectors WHERE status = 'Active'").fetchall()
+        for r in custom_rows:
+            if r["name"]:
+                default_sectors.add(r["name"].strip())
+    except Exception as e:
+        print(f"[WARN] Failed to query sectors from policies: {e}")
+    finally:
+        conn.close()
+
+    res = sorted(list(default_sectors))
     backend_cache.set(cache_key, res)
     return res
 

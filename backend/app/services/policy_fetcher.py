@@ -148,6 +148,20 @@ def _classify_sector(title: str, abstract: str = "") -> str:
                                "green", "renewable", "emission", "biodiversity", "taxonomy"]):
         return "ESG Policies"
     
+    # ── Check admin-added custom sectors from database ──
+    try:
+        conn = get_connection()
+        custom_rows = conn.execute(
+            "SELECT name, keywords FROM custom_sectors WHERE status = 'Active' AND keywords != ''"
+        ).fetchall()
+        conn.close()
+        for row in custom_rows:
+            sector_keywords = [kw.strip().lower() for kw in row["keywords"].split(",") if kw.strip()]
+            if any(kw in t for kw in sector_keywords):
+                return row["name"]
+    except Exception:
+        pass  # Graceful fallback if DB not available
+
     return None  # Not relevant to any known sector
 
 
@@ -667,19 +681,200 @@ def fetch_from_federal_register() -> list:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# DYNAMIC CUSTOM SOURCE CRAWLER
+# ═══════════════════════════════════════════════════════════════════
+
+def fetch_from_custom_source(source: dict) -> list:
+    """
+    Fetch and parse policies from a dynamically added admin source (JSON API, RSS Feed, or Web Scraper).
+    """
+    source_id = source.get("id")
+    name = source.get("name", "Custom Source")
+    url = source.get("url", "")
+    source_type = source.get("source_type", "web_scraper")
+    default_country = source.get("country") or "Global"
+    default_sector = source.get("sector") or "All"
+    
+    print(f"\n[DYNAMIC SOURCE] Crawling '{name}' ({url})...")
+    policies = []
+
+    try:
+        headers = {
+            "User-Agent": "PolicyIQ-Crawler/2.0 (Legal-Policy-Intelligence-Bot; +http://policyiq.ai)"
+        }
+        resp = requests.get(url, headers=headers, timeout=20)
+        resp.raise_for_status()
+
+        # 1. RSS / Atom Feed Parsing
+        if source_type == "rss_feed" or "xml" in resp.headers.get("content-type", "") or "<rss" in resp.text.lower() or "<feed" in resp.text.lower():
+            try:
+                import xml.etree.ElementTree as ET
+                import re
+                root = ET.fromstring(resp.text)
+                items = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
+                for item in items[:25]:
+                    title_elem = item.find("title") or item.find("{http://www.w3.org/2005/Atom}title")
+                    link_elem = item.find("link") or item.find("{http://www.w3.org/2005/Atom}link")
+                    desc_elem = item.find("description") or item.find("summary") or item.find("{http://www.w3.org/2005/Atom}summary")
+                    
+                    title = (title_elem.text if title_elem is not None and title_elem.text else "Untitled Policy")[:250]
+                    link = link_elem.text if link_elem is not None and link_elem.text else url
+                    if link_elem is not None and "href" in link_elem.attrib:
+                        link = link_elem.attrib["href"]
+                    
+                    content_text = desc_elem.text if desc_elem is not None and desc_elem.text else title
+                    clean_content = re.sub(r'<[^>]+>', ' ', content_text).strip()
+                    
+                    sector = _classify_sector(title, clean_content) or (default_sector if default_sector != "All" else "Data Privacy")
+                    country = _detect_country(title, clean_content, hint=default_country if default_country != "Global" else None) or default_country
+                    region = COUNTRY_REGIONS.get(country, "Global")
+
+                    policy = {
+                        "id": generate_id(f"custom_{source_id}", title, country),
+                        "title": title,
+                        "sector": sector,
+                        "region": region,
+                        "country": country,
+                        "content": f"{title}. Source: {name}. {clean_content[:800]} Full text: {link}",
+                        "tags": _extract_tags_from_title(title, sector),
+                        "status": "Active",
+                        "year": datetime.now().year,
+                        "version": "1.0",
+                        "source_url": link
+                    }
+                    policies.append(policy)
+            except Exception as e:
+                print(f"    RSS parsing error for '{name}': {e}")
+
+        # 2. JSON API Parsing
+        elif source_type == "json_api" or "json" in resp.headers.get("content-type", ""):
+            try:
+                data = resp.json()
+                docs = []
+                if isinstance(data, list):
+                    docs = data
+                elif isinstance(data, dict):
+                    for k, v in data.items():
+                        if isinstance(v, list):
+                            docs = v
+                            break
+                
+                for item in docs[:30]:
+                    if not isinstance(item, dict):
+                        continue
+                    title = str(item.get("title") or item.get("name") or item.get("headline") or "Untitled Document")[:250]
+                    link = str(item.get("url") or item.get("link") or item.get("html_url") or url)
+                    content_text = str(item.get("abstract") or item.get("description") or item.get("content") or title)
+                    
+                    sector = _classify_sector(title, content_text) or (default_sector if default_sector != "All" else "Data Privacy")
+                    country = _detect_country(title, content_text, hint=default_country if default_country != "Global" else None) or default_country
+                    region = COUNTRY_REGIONS.get(country, "Global")
+
+                    policy = {
+                        "id": generate_id(f"custom_{source_id}", title, country),
+                        "title": title,
+                        "sector": sector,
+                        "region": region,
+                        "country": country,
+                        "content": f"{title}. Published by {name}. {content_text[:800]} Link: {link}",
+                        "tags": _extract_tags_from_title(title, sector),
+                        "status": "Active",
+                        "year": datetime.now().year,
+                        "version": "1.0",
+                        "source_url": link
+                    }
+                    policies.append(policy)
+            except Exception as e:
+                print(f"    JSON parsing error for '{name}': {e}")
+
+        # 3. Web Page HTML Scraper
+        else:
+            try:
+                from urllib.parse import urljoin
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                
+                page_title = soup.title.string.strip() if soup.title and soup.title.string else name
+                anchors = soup.find_all('a', href=True)
+                policy_links = []
+                for a in anchors:
+                    txt = a.get_text(strip=True)
+                    href = a['href']
+                    if len(txt) > 12 and any(kw in txt.lower() for kw in ['policy', 'act', 'regulation', 'law', 'guideline', 'directive', 'order', 'standard', 'framework', 'data', 'ai', 'security', 'privacy']):
+                        full_href = urljoin(url, href)
+                        policy_links.append((txt[:250], full_href))
+
+                if policy_links:
+                    for txt, href in policy_links[:20]:
+                        sector = _classify_sector(txt) or (default_sector if default_sector != "All" else "Data Privacy")
+                        country = _detect_country(txt, "", hint=default_country if default_country != "Global" else None) or default_country
+                        region = COUNTRY_REGIONS.get(country, "Global")
+
+                        policy = {
+                            "id": generate_id(f"custom_{source_id}", txt, country),
+                            "title": txt,
+                            "sector": sector,
+                            "region": region,
+                            "country": country,
+                            "content": f"{txt}. Official policy resource crawled from {name} ({url}). Full documentation link: {href}",
+                            "tags": _extract_tags_from_title(txt, sector),
+                            "status": "Active",
+                            "year": datetime.now().year,
+                            "version": "1.0",
+                            "source_url": href
+                        }
+                        policies.append(policy)
+                else:
+                    paragraphs = [p.get_text(strip=True) for p in soup.find_all('p') if len(p.get_text(strip=True)) > 40]
+                    body_text = " ".join(paragraphs[:10])
+                    
+                    sector = _classify_sector(page_title, body_text) or (default_sector if default_sector != "All" else "Data Privacy")
+                    country = _detect_country(page_title, body_text, hint=default_country if default_country != "Global" else None) or default_country
+                    region = COUNTRY_REGIONS.get(country, "Global")
+
+                    policy = {
+                        "id": generate_id(f"custom_{source_id}", page_title, country),
+                        "title": page_title[:250],
+                        "sector": sector,
+                        "region": region,
+                        "country": country,
+                        "content": f"{page_title}. Official regulatory domain: {name}. {body_text[:1000]} Source URL: {url}",
+                        "tags": _extract_tags_from_title(page_title, sector),
+                        "status": "Active",
+                        "year": datetime.now().year,
+                        "version": "1.0",
+                        "source_url": url
+                    }
+                    policies.append(policy)
+
+            except Exception as e:
+                print(f"    Web scraping error for '{name}': {e}")
+
+        print(f"  [OK] Custom Source '{name}': {len(policies)} policies extracted")
+    except Exception as e:
+        print(f"  [WARN] Failed to fetch custom source '{name}': {e}")
+
+    return policies
+
+
+def test_crawl_source(source: dict) -> list:
+    """Helper used by admin test endpoint."""
+    return fetch_from_custom_source(source)
+
+
+# ═══════════════════════════════════════════════════════════════════
 # ORCHESTRATOR
 # ═══════════════════════════════════════════════════════════════════
 
 def run_full_fetch() -> dict:
     """
     Master fetch orchestrator.
-    All data comes from live government APIs - no hardcoded sources.
-    Tries all sources with graceful fallback.
+    Executes live government endpoints + all admin-provisioned trusted sources in DB.
     """
     global _last_fetch_result
     from app.services.progress_service import update_progress
 
-    update_progress(status="fetching", task_name="Multi-source policy fetch", total=3, processed=0, current_title="Connecting to EUR-Lex...")
+    update_progress(status="fetching", task_name="Multi-source policy fetch", total=4, processed=0, current_title="Connecting to EUR-Lex...")
 
     print("\n" + "=" * 60)
     print("POLICY INTELLIGENCE PIPELINE - Multi-source live fetch")
@@ -741,10 +936,55 @@ def run_full_fetch() -> dict:
         source_results["fedreg"]["status"] = f"failed: {str(e)[:100]}"
         print(f"  [ERROR] Federal Register pipeline failed: {e}")
 
+    # 4. Admin-configured Trusted Sources from DB
+    try:
+        update_progress(processed=3, current_title="Crawling admin trusted sources...")
+        conn = get_connection()
+        db_sources = conn.execute(
+            "SELECT id, name, url, source_type, description, country, sector FROM trusted_sources WHERE status = 'Active'"
+        ).fetchall()
+        conn.close()
+
+        for src in db_sources:
+            src_dict = dict(src)
+            # Skip built-in sources as they were fetched above
+            if src_dict["url"] in [EURLEX_SPARQL_ENDPOINT, CISA_KEV_URL, FEDERAL_REGISTER_URL]:
+                continue
+
+            src_policies = fetch_from_custom_source(src_dict)
+            inserted_count = 0
+            for p in src_policies:
+                if save_policy(p):
+                    total_inserted += 1
+                    inserted_count += 1
+                else:
+                    total_duplicates += 1
+            
+            source_results[f"source_{src_dict['id']}"] = {
+                "name": src_dict["name"],
+                "status": "success",
+                "count": len(src_policies),
+                "inserted": inserted_count
+            }
+
+            try:
+                conn_u = get_connection()
+                conn_u.execute(
+                    "UPDATE trusted_sources SET last_crawled_at = NOW(), policies_fetched = policies_fetched + %s WHERE id = %s",
+                    (inserted_count, src_dict["id"])
+                )
+                conn_u.commit()
+                conn_u.close()
+            except Exception as e:
+                print(f"[WARN] Failed to update source stats: {e}")
+
+    except Exception as e:
+        print(f"  [ERROR] Dynamic trusted sources pipeline failed: {e}")
+
     # Summary
     summary = {
         "timestamp": datetime.now().isoformat(),
-        "total_fetched": sum(s["count"] for s in source_results.values()),
+        "total_fetched": sum(s.get("count", 0) for s in source_results.values()),
         "total_inserted": total_inserted,
         "total_duplicates": total_duplicates,
         "sources": source_results,
@@ -754,10 +994,7 @@ def run_full_fetch() -> dict:
 
     print(f"\n{'=' * 60}")
     print(f"FETCH COMPLETE")
-    print(f"   EUR-Lex SPARQL:    {source_results['eurlex']['count']:>4} fetched, {source_results['eurlex']['inserted']:>4} new [{source_results['eurlex']['status']}]")
-    print(f"   CISA KEV:          {source_results['cisa']['count']:>4} fetched, {source_results['cisa']['inserted']:>4} new [{source_results['cisa']['status']}]")
-    print(f"   Federal Register:  {source_results['fedreg']['count']:>4} fetched, {source_results['fedreg']['inserted']:>4} new [{source_results['fedreg']['status']}]")
-    print(f"   TOTAL:             {total_inserted:>4} inserted, {total_duplicates:>4} duplicates skipped")
+    print(f"   TOTAL: {total_inserted:>4} inserted, {total_duplicates:>4} duplicates skipped")
     print(f"{'=' * 60}\n")
 
     if total_inserted > 0:

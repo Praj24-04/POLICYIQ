@@ -22,6 +22,13 @@ class ResetPasswordRequest(BaseModel):
     token: str = Field(..., max_length=1000)
     new_password: str = Field(..., max_length=100)
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., max_length=100)
+    new_password: str = Field(..., max_length=100)
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str = Field(..., max_length=100)
+
 class UserOut(BaseModel):
     id: int
     email: str

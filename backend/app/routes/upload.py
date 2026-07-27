@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.services.pdf_service import extract_text_from_pdf, extract_policy_metadata
 from app.services.nlp_service import extract_countries
 from app.ml.recommender_v2 import get_recommendations_for_text
-from app.auth import get_current_user
+from app.auth import get_current_user, log_activity
 from app.database import get_connection
 import json
 
@@ -70,6 +70,8 @@ async def upload_policy_pdf(
         print(f"Error logging upload history: {db_err}")
     finally:
         conn.close()
+
+    log_activity(current_user["id"], current_user["email"], "upload", f"Uploaded PDF: {file.filename}")
     
     return {
         "filename": file.filename,

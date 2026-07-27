@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { fetchPolicies, comparePolicies, getToken, BASE } from "../services/api";
+import { fetchPolicies, comparePolicies, getToken, BASE, fetchSectors } from "../services/api";
 import SectorBadge from "../components/SectorBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { GitCompare, CheckCircle2, XCircle, Lightbulb, RotateCcw, FileDown, Search } from "lucide-react";
@@ -13,6 +13,7 @@ export default function Compare() {
   const [step,         setStep]         = useState(1);
   const [sectorFilter, setSectorFilter] = useState("");
   const [search,       setSearch]       = useState("");
+  const [sectorsList,  setSectorsList]  = useState([]);
 
   const reportRef = useRef(null);
 
@@ -31,6 +32,10 @@ export default function Compare() {
       setPolicies(d || []);
     });
   }, [sectorFilter]);
+
+  useEffect(() => {
+    fetchSectors().then(d => d && setSectorsList(d));
+  }, []);
 
   const handleSelect = (policy) => {
     if (step === 1) {
@@ -63,14 +68,7 @@ export default function Compare() {
   // Sector filter list mapping
   const filterMapping = [
     { label: "All Sectors", value: "" },
-    { label: "AI Governance", value: "AI Governance" },
-    { label: "Cybersecurity", value: "Cybersecurity" },
-    { label: "Data Privacy", value: "Data Privacy" },
-    { label: "Financial Regulation", value: "Financial Regulation" },
-    { label: "Healthcare AI", value: "Healthcare AI" },
-    { label: "ESG", value: "ESG Policies" },
-    { label: "IoT", value: "IoT and Robotics" },
-    { label: "POSH", value: "POSH Policies" }
+    ...sectorsList.map(s => ({ label: s, value: s }))
   ];
 
   // Helper section divider component
@@ -112,12 +110,7 @@ export default function Compare() {
         }
       `}</style>
 
-      <div style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        padding: "32px 40px",
-        width: "100%"
-      }}>
+      <div className="page-container-sm" style={{ maxWidth: "1200px" }}>
         {/* PAGE HEADER (Always visible) */}
         <div style={{ marginBottom: "24px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
@@ -126,15 +119,7 @@ export default function Compare() {
               PREP / COMPARE
             </span>
           </div>
-          <h1 style={{ 
-            fontFamily: "'DM Sans', sans-serif", 
-            fontSize: "52px", 
-            fontWeight: 700, 
-            color: "var(--text-main)",
-            margin: "0 0 16px 0",
-            letterSpacing: "-1.5px",
-            lineHeight: "1.1"
-          }}>
+          <h1 className="page-title">
             Compare <span className="half-highlight-custom">policies.</span>
           </h1>
           <p style={{ fontFamily: "DM Sans", fontSize: "14px", color: "var(--text-muted)", margin: 0 }}>
@@ -273,16 +258,13 @@ export default function Compare() {
 
             {/* SELECTION SUMMARY BAR (appears after step 1) */}
             {step > 1 && sel1 && (
-              <div style={{
+              <div className="compare-selection-bar" style={{
                 padding: "10px 16px",
                 background: "var(--bg-hover)",
                 backgroundColor: "var(--bg-hover)",
                 border: "1px solid var(--border)",
                 borderRadius: "8px",
-                marginBottom: "12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "16px"
+                marginBottom: "12px"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <span style={{ fontSize: "10px", fontFamily: "JetBrains Mono", color: "var(--text-dim)" }}>POLICY A:</span>
@@ -325,7 +307,7 @@ export default function Compare() {
 
             {/* Policy selection grid */}
             <div style={{ maxHeight: "520px", overflowY: "auto", paddingRight: "4px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
+              <div className="compare-policy-grid">
                 {filtered.map((p) => {
                   const isSelectedA = sel1?.id === p.id;
                   const isSelectedB = sel2?.id === p.id;
@@ -453,7 +435,7 @@ export default function Compare() {
                           whiteSpace: "nowrap"
                         }}>
                           <span style={{ width: "4px", height: "4px", borderRadius: "50%", background: "var(--cyan)", backgroundColor: "var(--cyan)" }}></span>
-                          {p.sector ? p.sector.slice(0, 10) : "General"}
+                          {p.sector || "General"}
                         </div>
                       </div>
 
@@ -565,7 +547,7 @@ export default function Compare() {
             <div className="pdf-section" style={{ pageBreakInside: "avoid", marginBottom: "28px" }}>
               <SectionDivider label="01 ORIENTATION" />
               
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="compare-report-grid">
                 {[(result.policy1 || result.policy_1), (result.policy2 || result.policy_2)].map((p, idx) => {
                   if (!p) return null;
                   const isA = idx === 0;
@@ -671,16 +653,14 @@ export default function Compare() {
             <div className="pdf-section" style={{ pageBreakInside: "avoid", marginBottom: "28px" }}>
               <SectionDivider label="02 SIMILARITY VERDICT" />
 
-              <div style={{
+              <div className="compare-verdict-layout" style={{
                 padding: "22px 28px",
                 border: "1px solid var(--border)",
                 borderRadius: "8px",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                display: "flex",
-                gap: "24px"
+                boxShadow: "0 1px 4px rgba(0,0,0,0.08)"
               }}>
                 {/* Left Side (35%) */}
-                <div style={{ width: "35%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div className="compare-verdict-left" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                   <div>
                     <div style={{ fontSize: "48px", fontFamily: "DM Sans", fontWeight: 700, color: "var(--text-main)", lineHeight: 1 }}>
                       {Math.round((result.overall_metrics?.composite_score || 0) * 100)}%
@@ -714,7 +694,7 @@ export default function Compare() {
                 <div style={{ width: "1px", background: "var(--border)", backgroundColor: "var(--border)" }} />
 
                 {/* Right Side (65%) */}
-                <div style={{ width: "65%" }}>
+                <div className="compare-verdict-right">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
                     {[
                       { 

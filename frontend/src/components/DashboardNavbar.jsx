@@ -1,9 +1,9 @@
 import { NavLink } from "react-router-dom";
-import { Moon, Sun, Globe2 } from "lucide-react";
+import { Moon, Sun, Globe2, Menu } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 import PartnerLogos from "./PartnerBar";
 
-export default function DashboardNavbar({ user }) {
+export default function DashboardNavbar({ user, onMenuToggle }) {
   const { theme, toggleTheme } = useTheme();
   const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U";
 
@@ -15,19 +15,13 @@ export default function DashboardNavbar({ user }) {
   ];
 
   return (
-    <header style={{
-      /* CSS Grid: left | centre | right — guarantees true centring */
-      display: "grid",
-      gridTemplateColumns: "1fr auto 1fr",
-      alignItems: "center",
-      padding: "10px 32px",
-      background: "var(--bg-base)",
-      borderBottom: "1px solid var(--border)",
-      flexShrink: 0,
-    }}>
+    <header className="dashboard-navbar">
 
-      {/* ── GRID COL 1 – LEFT: PolicyIQ + partner logos ── */}
+      {/* ── GRID COL 1 – LEFT: Hamburger (mobile) + PolicyIQ + partner logos ── */}
       <div style={{ display: "flex", alignItems: "center" }}>
+        <button className="hamburger-btn" onClick={onMenuToggle} aria-label="Toggle menu">
+          <Menu size={22} />
+        </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{
             width: 30, height: 30, borderRadius: 6,
@@ -44,8 +38,8 @@ export default function DashboardNavbar({ user }) {
         <PartnerLogos />
       </div>
 
-      {/* ── GRID COL 2 – CENTRE: Nav links (always perfectly centred) ── */}
-      <nav style={{ display: "flex", gap: 32 }}>
+      {/* ── GRID COL 2 – CENTRE: Nav links (hidden on mobile via CSS) ── */}
+      <nav className="nav-center">
         {links.map((l) => (
           <NavLink
             key={l.to} to={l.to} end={l.to === "/"}

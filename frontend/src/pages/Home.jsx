@@ -137,8 +137,7 @@ export default function Home() {
             animate="visible"
             style={{ textAlign: "center", maxWidth: 800, marginBottom: 48 }}
           >
-            <motion.h1 variants={itemVariants} style={{
-              fontSize: "clamp(3.5rem, 7vw, 6rem)",
+            <motion.h1 variants={itemVariants} className="home-hero-title" style={{
               fontWeight: 800,
               lineHeight: 1.1,
               color: "var(--text-main)",
@@ -158,8 +157,7 @@ export default function Home() {
               </span>
             </motion.h1>
 
-            <motion.p variants={itemVariants} style={{
-              fontSize: "1.1rem",
+            <motion.p variants={itemVariants} className="home-hero-sub" style={{
               color: "var(--text-muted)",
               maxWidth: 600,
               margin: "0 auto 32px",
@@ -425,9 +423,7 @@ export default function Home() {
               pointerEvents: "none"
             }} />
 
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            <div className="home-marquee-vertical" style={{
               gap: 24,
               height: 600,
               width: "100%",
@@ -507,7 +503,7 @@ export default function Home() {
 
       {/* FOOTER */}
       <footer className="footer-dark" style={{ borderTop: "1px solid var(--border)", padding: "80px 48px", width: "100%" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", flexWrap: "wrap", gap: 48, marginBottom: 80 }}>
+        <div className="home-footer-grid" style={{ maxWidth: 1200, margin: "0 auto", marginBottom: 80 }}>
           {/* Newsletter Column */}
           <div style={{ flex: "2 1 300px", maxWidth: 450 }}>
             <div style={{ color: "#A3E635", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, marginBottom: 16, fontFamily: "JetBrains Mono" }}>
@@ -519,9 +515,9 @@ export default function Home() {
             <p style={{ color: "#A8A29E", fontSize: "0.95rem", lineHeight: 1.6, marginBottom: 24 }}>
               New regulations, platform updates, compliance tactics. No spam, unsubscribe in one click.
             </p>
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="newsletter-form-custom">
               <input type="email" placeholder="your@email.com" style={{ flex: 1, padding: "12px 16px", borderRadius: 8, border: "1px solid #292524", background: "#1C1917", color: "#FFF", fontSize: 14, outline: "none" }} />
-              <button style={{ background: "#A3E635", color: "#000", border: "none", padding: "0 24px", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <button style={{ background: "#A3E635", color: "#000", border: "none", padding: "12px 24px", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                 Subscribe
               </button>
             </div>
@@ -531,12 +527,11 @@ export default function Home() {
           <div style={{ flex: "1 1 120px" }}>
             <div style={{ color: "#57534E", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, marginBottom: 24, fontFamily: "JetBrains Mono" }}>PLATFORM</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14 }}>
-              <a href="#" style={{ textDecoration: "none" }}>Policies</a>
-              <a href="#" style={{ textDecoration: "none" }}>Global Tracker</a>
-              <a href="#" style={{ textDecoration: "none" }}>AI Analysis</a>
-              <a href="#" style={{ textDecoration: "none" }}>API Docs</a>
-              <a href="#" style={{ textDecoration: "none" }}>Integrations</a>
-              <a href="#" style={{ textDecoration: "none" }}>Open source</a>
+              <a href="/policies" style={{ textDecoration: "none" }}>Policies</a>
+              <a href="/dashboard" style={{ textDecoration: "none" }}>Global Tracker</a>
+              <a href="/recommend" style={{ textDecoration: "none" }}>AI Analysis</a>
+              <a href="/compare" style={{ textDecoration: "none" }}>Compare</a>
+              <a href="/analytics" style={{ textDecoration: "none" }}>Analytics</a>
             </div>
           </div>
 
@@ -544,9 +539,9 @@ export default function Home() {
           <div style={{ flex: "1 1 120px" }}>
             <div style={{ color: "#57534E", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, marginBottom: 24, fontFamily: "JetBrains Mono" }}>FOR COMPLIANCE</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14 }}>
-              <a href="#" style={{ textDecoration: "none" }}>Overview</a>
-              <a href="#" style={{ textDecoration: "none" }}>Enterprise</a>
-              <a href="#" style={{ textDecoration: "none" }}>Dashboard</a>
+              <a href="/dashboard" style={{ textDecoration: "none" }}>Dashboard</a>
+              <a href="/upload" style={{ textDecoration: "none" }}>Upload Document</a>
+              <a href="/generate" style={{ textDecoration: "none" }}>Generate Policy</a>
             </div>
           </div>
 
@@ -554,10 +549,9 @@ export default function Home() {
           <div style={{ flex: "1 1 120px" }}>
             <div style={{ color: "#57534E", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, marginBottom: 24, fontFamily: "JetBrains Mono" }}>ACCOUNT</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 14 }}>
-              <a href="#" style={{ textDecoration: "none" }}>Start free</a>
-              <a href="#" style={{ textDecoration: "none" }}>Sign In</a>
-              <a href="#" style={{ textDecoration: "none" }}>Blog</a>
-              <a href="#" style={{ textDecoration: "none" }}>Contact</a>
+              <a href="/register" style={{ textDecoration: "none" }}>Start free</a>
+              <a href="/login" style={{ textDecoration: "none" }}>Sign In</a>
+              <a href="mailto:support@policyiq.com" style={{ textDecoration: "none" }}>Contact</a>
             </div>
           </div>
         </div>
@@ -576,10 +570,7 @@ export default function Home() {
           </div>
 
           <div style={{ display: "flex", gap: 24, fontSize: 12, fontWeight: 600 }}>
-            <a href="#" style={{ textDecoration: "none" }}>Terms</a>
-            <a href="#" style={{ textDecoration: "none" }}>Privacy</a>
-            <a href="#" style={{ textDecoration: "none" }}>Refunds</a>
-            <a href="#" style={{ textDecoration: "none" }}>Contact</a>
+            <a href="mailto:support@policyiq.com" style={{ textDecoration: "none" }}>Contact</a>
           </div>
         </div>
       </footer>

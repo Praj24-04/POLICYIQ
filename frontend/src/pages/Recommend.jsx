@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchPolicies, fetchRecommendations, submitFeedback, generatePolicyTemplate, getToken, BASE } from "../services/api";
+import { fetchPolicies, fetchRecommendations, submitFeedback, generatePolicyTemplate, getToken, BASE, fetchSectors } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Sparkles, ExternalLink, Copy, ThumbsUp, ThumbsDown, Target, Shield, Search, FileDown } from "lucide-react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { jsPDF } from "jspdf";
+
+const RECOMMEND_LOADING_STEPS = [
+  "Computing semantic embeddings...",
+  "Scanning jurisdictions for coverage gaps...",
+  "Running multi-factor gap analysis...",
+  "Scoring sector, maturity, and peer factors...",
+  "Ranking countries by adoption priority...",
+  "Finalizing recommendations..."
+];
 
 export default function Recommend() {
   const nav = useNavigate();
@@ -15,6 +24,7 @@ export default function Recommend() {
   const [sector,        setSector]        = useState("");
   const [search,        setSearch]        = useState("");
   const [feedbackGiven, setFeedbackGiven] = useState({});
+  const [sectorsList,   setSectorsList]   = useState([]);
   const [weights,       setWeights]       = useState({
     sector_gap: 35,
     regulatory_maturity: 25,
@@ -36,6 +46,7 @@ export default function Recommend() {
   const [hoveredProposalBtn, setHoveredProposalBtn] = useState({});
   const [hoveredFeedbackBtn, setHoveredFeedbackBtn] = useState({});
   const [hoveredBack, setHoveredBack] = useState(false);
+  const [recLoadingStep, setRecLoadingStep] = useState(0);
 
   const toggleReason = (country) => {
     setExpandedReasons(prev => ({
@@ -63,7 +74,22 @@ export default function Recommend() {
 
   useEffect(() => {
     fetchPolicies({}).then(d => setPolicies(d || []));
+    fetchSectors().then(d => d && setSectorsList(d));
   }, []);
+
+  // Cycle through loading step messages while loading
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      setRecLoadingStep(0);
+      interval = setInterval(() => {
+        setRecLoadingStep(s => (s < RECOMMEND_LOADING_STEPS.length - 1 ? s + 1 : s));
+      }, 3000);
+    } else {
+      setRecLoadingStep(0);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [loading]);
 
   const handleSelect = (policy) => {
     setSelected(policy);
@@ -258,13 +284,7 @@ export default function Recommend() {
         }
       `}</style>
 
-      <div style={{
-        maxWidth: "1100px",
-        margin: "0 auto",
-        padding: "32px 40px",
-        width: "100%",
-        transition: "all 0.3s ease"
-      }}>
+      <div className="page-container-sm">
         
         {/* ========================================================================= */}
         {/* MODE A: POLICY SELECTION (step === 1) */}
@@ -281,11 +301,7 @@ export default function Recommend() {
                       DISCOVER / INTELLIGENCE
                     </span>
                   </div>
-                  <h1 style={{ 
-                    fontFamily: "'DM Sans', sans-serif", 
-                    fontSize: "48px", 
-                    fontWeight: 700, 
-                    color: "var(--text-main)", 
+                  <h1 className="page-title" style={{ 
                     margin: "0 0 8px 0", 
                     letterSpacing: "-1px", 
                     lineHeight: "1.1" 
@@ -329,7 +345,7 @@ export default function Recommend() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: "24px", alignItems: "start" }}>
+            <div className="recommend-layout">
               {/* Left Panel: Filters + Compact Policy Cards */}
               <div>
                 {/* Search Input Bar */}
@@ -381,9 +397,7 @@ export default function Recommend() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                     {[
-                      "", "AI Governance", "Cybersecurity", "Data Privacy", 
-                      "Healthcare AI", "Financial Regulation", "ESG Policies", 
-                      "POSH Policies", "IoT and Robotics"
+                      "", ...sectorsList
                     ].map(s => (
                       <button 
                         key={s} 
@@ -680,16 +694,12 @@ export default function Recommend() {
 
             {/* Selected Policy Compact Card */}
             {selected && (
-              <div style={{
-                background: "var(--bg-hover)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                padding: "16px 20px",
-                marginBottom: "16px",
-                display: "flex",
-                alignItems: "center",
-                gap: "16px"
-              }}>
+              <div 
+                className="selected-policy-compact-card-custom"
+                style={{
+                  marginBottom: "16px"
+                }}
+              >
                 {/* Left avatar */}
                 <div style={{
                   width: "40px",
@@ -708,7 +718,7 @@ export default function Recommend() {
                 </div>
 
                 {/* Center */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="card-center" style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", textTransform: "uppercase" }}>
                     ANALYZING
                   </div>
@@ -724,7 +734,7 @@ export default function Recommend() {
                       margin: "2px 0 6px 0",
                       cursor: "pointer",
                       lineHeight: "1.4",
-                      wordBreak: "break-word"
+                      overflowWrap: "anywhere"
                     }}
                   >
                     {selected.title}
@@ -828,36 +838,86 @@ export default function Recommend() {
               </div>
             )}
 
-            {/* Loading Recommendations State */}
+            {/* Loading Recommendations State — Stepped Progress */}
             {loading && (
               <div style={{
                 background: "var(--bg-card)",
                 border: "1px solid var(--border)",
                 borderRadius: "8px",
-                padding: "54px",
-                textAlign: "center",
+                padding: "40px 48px",
                 marginTop: "16px",
                 width: "100%"
               }}>
-                <LoadingSpinner />
-                <p style={{
-                  fontFamily: "DM Sans",
-                  fontSize: "15px",
-                  color: "var(--text-muted)",
-                  marginTop: "14px",
-                  marginBottom: 0
+                {/* Header row */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--cyan)", animation: "spin 1.5s linear infinite" }} />
+                    <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      ML Pipeline Active
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-dim)" }}>
+                    Step {recLoadingStep + 1} of {RECOMMEND_LOADING_STEPS.length}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ height: "4px", background: "var(--bg-hover)", borderRadius: "2px", marginBottom: "20px", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${((recLoadingStep + 1) / RECOMMEND_LOADING_STEPS.length) * 100}%`,
+                    background: "var(--cyan)",
+                    borderRadius: "2px",
+                    transition: "width 0.8s ease"
+                  }} />
+                </div>
+
+                {/* Current step message */}
+                <h3 style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  color: "var(--text-main)",
+                  marginBottom: "8px",
+                  textAlign: "center"
                 }}>
-                  Analyzing {selected?.title}...
-                </p>
+                  {RECOMMEND_LOADING_STEPS[recLoadingStep]}
+                </h3>
                 <p style={{
                   fontFamily: "JetBrains Mono",
-                  fontSize: "13px",
-                  color: "var(--text-muted)",
-                  marginTop: "6px",
-                  marginBottom: 0
+                  fontSize: "12px",
+                  color: "var(--text-dim)",
+                  textAlign: "center",
+                  marginBottom: "20px"
                 }}>
-                  Running ML pipeline across {policies.length || 0} countries
+                  Analyzing "{selected?.title?.slice(0, 50)}{selected?.title?.length > 50 ? '...' : ''}" · ~15-20s
                 </p>
+
+                {/* Step list */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "400px", margin: "0 auto" }}>
+                  {RECOMMEND_LOADING_STEPS.map((step, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", opacity: i <= recLoadingStep ? 1 : 0.35, transition: "opacity 0.4s ease" }}>
+                      <div style={{
+                        width: "20px", height: "20px", borderRadius: "50%",
+                        background: i < recLoadingStep ? "var(--cyan)" : i === recLoadingStep ? "var(--bg-hover)" : "var(--bg-hover)",
+                        border: i === recLoadingStep ? "2px solid var(--cyan)" : i < recLoadingStep ? "none" : "1px solid var(--border)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: "10px", fontWeight: 700, color: i < recLoadingStep ? "#000" : "var(--text-dim)",
+                        flexShrink: 0, transition: "all 0.3s ease"
+                      }}>
+                        {i < recLoadingStep ? "✓" : i + 1}
+                      </div>
+                      <span style={{
+                        fontSize: "13px",
+                        fontFamily: "DM Sans",
+                        color: i === recLoadingStep ? "var(--text-main)" : "var(--text-muted)",
+                        fontWeight: i === recLoadingStep ? 600 : 400
+                      }}>
+                        {step.replace('...', '')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -978,7 +1038,7 @@ export default function Recommend() {
 
                       <div style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                         gap: "16px 24px"
                       }}>
                         {[
@@ -993,7 +1053,9 @@ export default function Recommend() {
                               display: "flex",
                               justifyContent: "space-between",
                               marginBottom: "6px",
-                              alignItems: "baseline"
+                              alignItems: "baseline",
+                              flexWrap: "wrap",
+                              gap: "4px 8px"
                             }}>
                               <span style={{ fontSize: "14px", fontFamily: "DM Sans", fontWeight: 500, color: "var(--text-main)" }}>
                                 {item.label}
@@ -1338,12 +1400,12 @@ export default function Recommend() {
                           </div>
 
                           {/* THREE-COLUMN CONTENT GRID */}
-                          <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr 200px",
-                            gap: "20px",
-                            alignItems: "start"
-                          }}>
+                          <div 
+                            className="recommender-details-grid-custom"
+                            style={{
+                              gap: "20px"
+                            }}
+                          >
                             
                             {/* COLUMN 1 — "WHY THIS COUNTRY" */}
                             <div>
@@ -1419,7 +1481,7 @@ export default function Recommend() {
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                               <div style={{ width: "200px", height: "180px" }}>
                                 <ResponsiveContainer width="100%" height="100%">
-                                  <RadarChart cx="50%" cy="50%" outerRadius="65%" data={[
+                                  <RadarChart cx="50%" cy="50%" outerRadius="55%" data={[
                                     { subject: "Gap Severity", score: Math.round((rec.score_breakdown.sector_gap / (weights.sector_gap / 100 || 1)) * 100) },
                                     { subject: "Infrastructure", score: Math.round((rec.score_breakdown.regulatory_maturity / (weights.regulatory_maturity / 100 || 1)) * 100) },
                                     { subject: "Intent Match", score: Math.round((rec.score_breakdown.semantic_need / (weights.semantic_need / 100 || 1)) * 100) },
@@ -1474,14 +1536,7 @@ export default function Recommend() {
                           </div>
 
                           {/* BOTTOM ROW (card footer) */}
-                          <div style={{
-                            borderTop: "1px solid #f0f0f0",
-                            marginTop: "16px",
-                            paddingTop: "12px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between"
-                          }}>
+                          <div className="recommender-footer-row-custom">
                             {/* AI Proposal button */}
                             <button
                               onClick={() => handleGenerateProposal(rec.country, selected.sector)}
@@ -1508,7 +1563,7 @@ export default function Recommend() {
                             </button>
 
                             {/* Feedback buttons */}
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <span style={{ fontSize: "12px", fontFamily: "DM Sans", color: "#9ca3af", marginRight: "8px" }}>
                                 Was this relevant?
                               </span>

@@ -198,7 +198,7 @@ def _parse_tags(raw_tags):
     return [t.strip() for t in raw_tags.split(",") if t.strip()]
 
 
-def load_policies(sector=None, region=None, search=None, status=None):
+def load_policies(sector=None, region=None, search=None, status=None, country=None):
     conn = get_connection()
     query = """
         SELECT id, title, sector, region, country, 
@@ -220,8 +220,14 @@ def load_policies(sector=None, region=None, search=None, status=None):
         query += " AND status = %s"
         params.append(status)
     if search:
-        query += " AND (title LIKE %s OR content LIKE %s OR country LIKE %s)"
-        params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+        query += """
+            AND (
+                to_tsvector('english', title || ' ' || content) @@ plainto_tsquery('english', %s)
+                OR title ILIKE %s
+                OR country ILIKE %s
+            )
+        """
+        params.extend([search, f"%{search}%", f"%{search}%"])
 
     rows = conn.execute(query, params).fetchall()
 
@@ -239,6 +245,29 @@ def load_policies(sector=None, region=None, search=None, status=None):
                 p["extracted_countries"] = [p["country"]] if p.get("country") else []
         else:
             p["extracted_countries"] = [p["country"]] if p.get("country") else []
+
+        if country:
+            def clean_name(name):
+                if not name:
+                    return ""
+                n = name.lower().strip()
+                if n == "united states of america" or n == "usa" or n == "us":
+                    return "united states"
+                if n == "united kingdom" or n == "uk":
+                    return "united kingdom"
+                if n == "south korea" or n == "korea":
+                    return "south korea"
+                return n
+
+            target = clean_name(country)
+            match = False
+            if p.get("country") and (clean_name(p["country"]) == target or p["country"].lower().strip() == country.lower().strip()):
+                match = True
+            elif p.get("extracted_countries") and any(clean_name(c) == target or c.lower().strip() == country.lower().strip() for c in p["extracted_countries"]):
+                match = True
+            
+            if not match:
+                continue
 
         result.append(p)
 

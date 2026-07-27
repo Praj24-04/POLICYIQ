@@ -15,7 +15,7 @@ export default function PolicyDetail() {
   if (!policy) return <LoadingSpinner label="Loading policy..." />;
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 800 }}>
+    <div className="page-container-narrow" style={{ maxWidth: 800 }}>
       <button onClick={() => nav(-1)} style={{
         display: "flex", alignItems: "center", gap: 6, marginBottom: 24,
         background: "none", border: "none", color: "var(--text-muted)",

@@ -71,10 +71,15 @@ const get = (url) => {
 const postJson = async (url, body) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  const headers = { "Content-Type": "application/json" };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   try {
     const res = await fetch(`${BASE}${url}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body),
       signal: controller.signal,
     });
@@ -94,6 +99,8 @@ export const registerUser = (email, full_name, password) => postJson("/auth/regi
 export const forgotPassword = (email) => postJson("/auth/forgot-password", { email });
 export const loginWithGoogle = (credential) => postJson("/auth/google", { credential });
 export const resetPassword  = (token, new_password) => postJson("/auth/reset-password", { token, new_password });
+export const changePassword = (old_password, new_password) => postJson("/auth/change-password", { old_password, new_password });
+export const updateProfile  = (full_name) => postJson("/auth/update-profile", { full_name });
 export const fetchHistory   = () => get("/auth/history");
 
 // Rest of api.js stays exactly the same
@@ -149,4 +156,138 @@ export const generatePolicyTemplate = (country, sector) =>
   }).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
+  });
+
+// ── Admin APIs ────────────────────────────────────────────────────────────
+export const fetchAdminStats   = () => get("/admin/stats");
+export const fetchAdminSystem  = () => get("/admin/system");
+
+export const fetchAdminUsers = (params = {}) => {
+  const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v !== undefined));
+  const q = new URLSearchParams(clean).toString();
+  return get(`/admin/users${q ? "?" + q : ""}`);
+};
+
+export const fetchAdminUser    = (id) => get(`/admin/users/${id}`);
+
+export const updateUserRole = (id, role) => postJson(`/admin/users/${id}/role`, { role });
+
+export const blockUser = (id) =>
+  fetch(`${BASE}/admin/users/${id}/block`, {
+    method: "PUT",
+    headers: { "Authorization": `Bearer ${getToken()}`, "Content-Type": "application/json" },
+  }).then(r => r.json());
+
+export const deleteUser = (id) =>
+  fetch(`${BASE}/admin/users/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${getToken()}` },
+  }).then(r => r.json());
+
+export const fetchActivityLogs = (params = {}) => {
+  const clean = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== "" && v !== undefined));
+  const q = new URLSearchParams(clean).toString();
+  return get(`/admin/activity${q ? "?" + q : ""}`);
+};
+
+export const adminDeletePolicy = (id) =>
+  fetch(`${BASE}/admin/policies/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${getToken()}` },
+  }).then(r => r.json());
+
+export const createAdminUser = (data) =>
+  fetch(`${BASE}/admin/create-admin`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to create admin");
+    return res;
+  });
+
+export const fetchTrustedSources = () => get("/admin/trusted-sources");
+
+export const createTrustedSource = (data) =>
+  fetch(`${BASE}/admin/trusted-sources`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to add source");
+    return res;
+  });
+
+export const updateTrustedSourceStatus = (id, status) =>
+  fetch(`${BASE}/admin/trusted-sources/${id}/status`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  }).then(r => r.json());
+
+export const deleteTrustedSource = (id) =>
+  fetch(`${BASE}/admin/trusted-sources/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${getToken()}` },
+  }).then(r => r.json());
+
+export const testTrustedSource = (id) =>
+  fetch(`${BASE}/admin/trusted-sources/${id}/test`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${getToken()}` },
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Test crawl failed");
+    return res;
+  });
+
+export const fetchAdminSectors = () => get("/admin/sectors");
+
+export const createAdminSector = (data) =>
+  fetch(`${BASE}/admin/sectors`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to create sector");
+    return res;
+  });
+
+export const updateAdminSector = (id, data) =>
+  fetch(`${BASE}/admin/sectors/${id}`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to update sector");
+    return res;
+  });
+
+export const deleteAdminSector = (id) =>
+  fetch(`${BASE}/admin/sectors/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${getToken()}` },
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to delete sector");
+    return res;
   });

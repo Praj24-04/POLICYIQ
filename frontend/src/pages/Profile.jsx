@@ -1,15 +1,67 @@
 import { useEffect, useState } from "react";
-import { fetchHistory } from "../services/api";
+import { fetchHistory, changePassword, updateProfile, fetchSectors } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { 
   User, Shield, Mail, Calendar, UploadCloud, 
   FileText, GitCompare, Sparkles, CheckCircle2 
 } from "lucide-react";
 
-export default function Profile({ user }) {
+export default function Profile({ user, onUserUpdate }) {
   const [history, setHistory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedPriorities, setSelectedPriorities] = useState(["AI Governance", "Data Privacy"]);
+  const [sectorsList, setSectorsList] = useState([]);
+  
+  const [fullName, setFullName] = useState(user?.full_name || "");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
+  const [passLoading, setPassLoading] = useState(false);
+  const [passMessage, setPassMessage] = useState(null);
+
+  const handleUpdateProfile = async () => {
+    if (!fullName.trim()) {
+      setProfileMessage({ type: "error", text: "Name cannot be empty." });
+      return;
+    }
+    setProfileLoading(true);
+    setProfileMessage(null);
+    try {
+      const updated = await updateProfile(fullName);
+      if (updated) {
+        onUserUpdate(updated);
+        setProfileMessage({ type: "success", text: "Profile updated successfully." });
+      }
+    } catch (err) {
+      setProfileMessage({ type: "error", text: err.message || "Failed to update profile." });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!oldPassword || !newPassword) {
+      setPassMessage({ type: "error", text: "Both current and new password are required." });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPassMessage({ type: "error", text: "New password must be at least 6 characters." });
+      return;
+    }
+    setPassLoading(true);
+    setPassMessage(null);
+    try {
+      const res = await changePassword(oldPassword, newPassword);
+      setPassMessage({ type: "success", text: res.message || "Password changed successfully." });
+      setOldPassword("");
+      setNewPassword("");
+    } catch (err) {
+      setPassMessage({ type: "error", text: err.message || "Incorrect current password or change failed." });
+    } finally {
+      setPassLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchHistory()
@@ -20,6 +72,7 @@ export default function Profile({ user }) {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+    fetchSectors().then(d => d && setSectorsList(d));
   }, []);
 
   const togglePriority = (sector) => {
@@ -56,12 +109,7 @@ export default function Profile({ user }) {
       background: "var(--bg-deep)",
       minHeight: "100vh"
     }}>
-      <div style={{
-        maxWidth: "1280px",
-        margin: "0 auto",
-        padding: "32px 40px",
-        width: "100%"
-      }}>
+      <div className="page-container">
         {/* Page Header */}
         <div className="fade-up" style={{ marginBottom: "28px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
@@ -70,15 +118,7 @@ export default function Profile({ user }) {
               ACCOUNT / PROFILE
             </span>
           </div>
-          <h1 style={{ 
-            fontFamily: "'DM Sans', sans-serif", 
-            fontSize: "52px", 
-            fontWeight: 700, 
-            color: "var(--text-main)",
-            margin: "0 0 16px 0",
-            letterSpacing: "-1.5px",
-            lineHeight: "1.1"
-          }}>
+          <h1 className="page-title">
             Your workspaces <span className="half-highlight-custom">analytics.</span>
           </h1>
           <p style={{ fontFamily: "DM Sans", fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>
@@ -87,7 +127,7 @@ export default function Profile({ user }) {
         </div>
 
         {/* Dashboard Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "24px", alignItems: "start" }}>
+        <div className="profile-grid-custom">
           
           {/* Left Column: User Profile Details */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -192,7 +232,7 @@ export default function Profile({ user }) {
               </p>
               
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                {["AI Governance", "Data Privacy", "Cybersecurity", "Healthcare AI", "Financial Regulation", "ESG Policies", "IoT and Robotics"].map((sector) => {
+                {sectorsList.map((sector) => {
                   const active = selectedPriorities.includes(sector);
                   return (
                     <button 
@@ -221,13 +261,162 @@ export default function Profile({ user }) {
               </div>
             </div>
 
+            {/* Account Settings Card */}
+            <div className="fade-up" style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "22px 26px",
+              marginTop: "4px"
+            }}>
+              <div style={{ 
+                display: "inline-block", 
+                background: "rgba(92, 158, 46, 0.08)", 
+                border: "1px solid rgba(92, 158, 46, 0.15)", 
+                borderRadius: "4px", 
+                padding: "4px 10px", 
+                marginBottom: "16px" 
+              }}>
+                <span style={{ fontFamily: "DM Sans", fontWeight: 600, fontSize: "13px", color: "#5c9e2e", letterSpacing: "0.02em" }}>
+                  Account Settings
+                </span>
+              </div>
+
+              {/* Update Profile Section */}
+              <div style={{ marginBottom: "24px" }}>
+                <h3 style={{ fontSize: "12px", fontFamily: "JetBrains Mono", fontWeight: 600, color: "var(--text-main)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Update Full Name
+                </h3>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Full Name"
+                    style={{
+                      flex: 1,
+                      background: "var(--bg-hover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      fontSize: "13px",
+                      fontFamily: "DM Sans",
+                      color: "var(--text-main)",
+                      outline: "none"
+                    }}
+                  />
+                  <button
+                    onClick={handleUpdateProfile}
+                    disabled={profileLoading}
+                    style={{
+                      background: "#5c9e2e",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "8px 16px",
+                      fontSize: "13px",
+                      fontFamily: "DM Sans",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      opacity: profileLoading ? 0.7 : 1
+                    }}
+                  >
+                    Save
+                  </button>
+                </div>
+                {profileMessage && (
+                  <div style={{ 
+                    fontSize: "11px", 
+                    fontFamily: "DM Sans", 
+                    color: profileMessage.type === "success" ? "#5c9e2e" : "#ef4444", 
+                    marginTop: "6px" 
+                  }}>
+                    {profileMessage.text}
+                  </div>
+                )}
+              </div>
+
+              {/* Change Password Section */}
+              <div>
+                <h3 style={{ fontSize: "12px", fontFamily: "JetBrains Mono", fontWeight: 600, color: "var(--text-main)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Change Password
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <input
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    placeholder="Current Password"
+                    style={{
+                      background: "var(--bg-hover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      fontSize: "13px",
+                      fontFamily: "DM Sans",
+                      color: "var(--text-main)",
+                      outline: "none"
+                    }}
+                  />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New Password (min 6 chars)"
+                    style={{
+                      background: "var(--bg-hover)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "6px",
+                      padding: "8px 12px",
+                      fontSize: "13px",
+                      fontFamily: "DM Sans",
+                      color: "var(--text-main)",
+                      outline: "none"
+                    }}
+                  />
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={passLoading}
+                    style={{
+                      background: "var(--bg-hover)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-main)",
+                      borderRadius: "6px",
+                      padding: "10px",
+                      fontSize: "13px",
+                      fontFamily: "DM Sans",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      opacity: passLoading ? 0.7 : 1
+                    }}
+                    onMouseEnter={e => { if(!passLoading) e.currentTarget.style.borderColor = '#5c9e2e'; }}
+                    onMouseLeave={e => { if(!passLoading) e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  >
+                    Change Password
+                  </button>
+                </div>
+                {passMessage && (
+                  <div style={{ 
+                    fontSize: "11px", 
+                    fontFamily: "DM Sans", 
+                    color: passMessage.type === "success" ? "#5c9e2e" : "#ef4444", 
+                    marginTop: "6px" 
+                  }}>
+                    {passMessage.text}
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
 
           {/* Right Column: Key Stats & Activity Streams */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             
             {/* Multi-Metric Cards Row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+            <div className="profile-metric-cards-grid">
               {[
                 { label: "PDFs Ingested", value: totalUploads, icon: UploadCloud, desc: "Processed via spaCy NER" },
                 { label: "Templates Drafted", value: totalGenerates, icon: FileText, desc: "Created via Template Gen" },

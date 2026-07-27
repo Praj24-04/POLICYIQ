@@ -1,8 +1,16 @@
 import sys
 from pathlib import Path
 import numpy as np
-import umap
-import hdbscan
+try:
+    import umap
+except ImportError:
+    umap = None
+
+try:
+    import hdbscan
+except ImportError:
+    hdbscan = None
+
 import pickle
 
 # Setup paths to ensure we can import app modules properly
@@ -17,22 +25,23 @@ CLUSTERER_PKL_PATH = _backend_root / "data" / "clusterer.pkl"
 
 class PolicyClusterer:
     def __init__(self):
-        # Initialize UMAP reducer
+        # Initialize UMAP reducer if available
         self.reducer = umap.UMAP(
             n_components=50,
             n_neighbors=15,
             min_dist=0.1,
             metric="cosine",
             random_state=42
-        )
-        # Initialize HDBSCAN
+        ) if umap else None
+        
+        # Initialize HDBSCAN if available
         self.clusterer = hdbscan.HDBSCAN(
             min_cluster_size=5,
             min_samples=3,
             metric="euclidean",
             cluster_selection_method="eom",
             prediction_data=True
-        )
+        ) if hdbscan else None
         self.fitted = False
         self.reduced_embeddings = None
         self.policy_ids = []
@@ -83,6 +92,10 @@ class PolicyClusterer:
         Run UMAP to reduce dimensions, then run HDBSCAN on reduced embeddings.
         Store results internally.
         """
+        if not self.reducer or not self.clusterer:
+            print("[WARN] UMAP/HDBSCAN not available. Skipping clustering fit.")
+            return {}
+
         if len(embeddings) == 0:
             print("[WARN] Empty embeddings passed to fit. Cannot cluster.")
             return {}

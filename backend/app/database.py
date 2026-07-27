@@ -111,6 +111,19 @@ def init_db():
         )
     """)
 
+    # ── Activity log table (admin audit trail) ────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS activity_logs (
+            id          SERIAL PRIMARY KEY,
+            user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            user_email  TEXT NOT NULL,
+            action      TEXT NOT NULL,
+            detail      TEXT DEFAULT '',
+            ip_address  TEXT DEFAULT '',
+            created_at  TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
     # ── Per-user history tables ──────────────────────────────────────────
     conn.execute("""
         CREATE TABLE IF NOT EXISTS user_uploads (
@@ -158,6 +171,36 @@ def init_db():
         )
     """)
 
+    # ── Trusted policy sources (Domain links & APIs for crawler expansion) ────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS trusted_sources (
+            id                  SERIAL PRIMARY KEY,
+            name                TEXT NOT NULL,
+            url                 TEXT UNIQUE NOT NULL,
+            source_type         TEXT DEFAULT 'json_api',
+            description         TEXT DEFAULT '',
+            country             TEXT DEFAULT 'Global',
+            sector              TEXT DEFAULT 'All',
+            status              TEXT DEFAULT 'Active',
+            created_at          TIMESTAMP DEFAULT NOW(),
+            last_crawled_at     TIMESTAMP,
+            policies_fetched    INTEGER DEFAULT 0
+        )
+    """)
+
+    # ── Custom sectors (Admin-managed sector expansion) ────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS custom_sectors (
+            id          SERIAL PRIMARY KEY,
+            name        TEXT UNIQUE NOT NULL,
+            description TEXT DEFAULT '',
+            color       TEXT DEFAULT '#64748b',
+            keywords    TEXT DEFAULT '',
+            status      TEXT DEFAULT 'Active',
+            created_at  TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
 
     # ── Add pgvector columns (graceful if extension not available) ────
     try:
@@ -184,6 +227,9 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_policies_status ON policies(status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_policies_year ON policies(year)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_policies_country ON policies(country)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_action ON activity_logs(action)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC)")
         conn.commit()
         print("[OK] Database performance indexes verified/created")
     except Exception as ie:
@@ -200,6 +246,57 @@ def init_db():
     # ── Auto-seed foundational policies ─────────────────────────────────
     _seed_foundational_policies()
     _seed_country_data()
+    _seed_admin_user()
+    _seed_trusted_sources()
+
+
+def _seed_trusted_sources():
+    """Seed default official trusted policy sources if table is empty."""
+    default_sources = [
+        {
+            "name": "EUR-Lex SPARQL API",
+            "url": "https://publications.europa.eu/webapi/rdf/sparql",
+            "source_type": "sparql",
+            "description": "Official EU Law and Publications Repository",
+            "country": "European Union",
+            "sector": "All"
+        },
+        {
+            "name": "CISA Known Exploited Vulnerabilities",
+            "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+            "source_type": "json_api",
+            "description": "US CISA Cybersecurity Catalog & Advisories",
+            "country": "United States",
+            "sector": "Cybersecurity"
+        },
+        {
+            "name": "US Federal Register API",
+            "url": "https://www.federalregister.gov/api/v1/documents.json",
+            "source_type": "json_api",
+            "description": "Official Daily Journal of the US Government",
+            "country": "United States",
+            "sector": "All"
+        }
+    ]
+    conn = get_connection()
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM trusted_sources").fetchone()[0]
+        if count == 0:
+            for s in default_sources:
+                conn.execute("""
+                    INSERT INTO trusted_sources (name, url, source_type, description, country, sector)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (s["name"], s["url"], s["source_type"], s["description"], s["country"], s["sector"]))
+            conn.commit()
+            print("[OK] Default trusted domain sources seeded")
+    except Exception as e:
+        print(f"[WARN] Trusted sources seed skipped: {e}")
+        try:
+            conn.conn.rollback()
+        except Exception:
+            pass
+    finally:
+        conn.close()
 
 
 def _seed_foundational_policies():
@@ -314,3 +411,32 @@ def _seed_country_data():
     conn.commit()
     conn.close()
     print(f"[OK] Country data synced: {synced_profiles} profiles, {synced_needs} needs updated in database")
+
+
+def _seed_admin_user():
+    """Create default admin user if no admin exists."""
+    conn = get_connection()
+    try:
+        existing = conn.execute(
+            "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
+        ).fetchone()
+        if existing:
+            conn.close()
+            return
+
+        from app.auth import hash_password
+        pw_hash = hash_password("Admin@123456")
+        conn.execute(
+            "INSERT INTO users (email, full_name, password_hash, role) VALUES (%s, %s, %s, %s)",
+            ("admin@policyiq.com", "System Administrator", pw_hash, "admin")
+        )
+        conn.commit()
+        print("[OK] Default admin user seeded: admin@policyiq.com")
+    except Exception as e:
+        print(f"[WARN] Admin seeding skipped: {e}")
+        try:
+            conn.conn.rollback()
+        except Exception:
+            pass
+    finally:
+        conn.close()

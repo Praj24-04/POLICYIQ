@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 from pydantic import BaseModel
 from datetime import datetime
 import re
@@ -6,6 +6,7 @@ from app.database import get_connection
 from app.services.policy_generator import generate_policy_document
 from app.services.pdf_generator import generate_policy_pdf
 from data.country_profiles import COUNTRY_PROFILES
+from app.auth import get_current_user, log_activity
 
 router = APIRouter()
 
@@ -38,6 +39,14 @@ def generate_policy(req: GeneratePolicyRequest):
         # Save output in cache using policy_id
         policy_id = result["policy_id"]
         _generated_policies[policy_id] = result
+
+        # Log activity if authenticated (generate may be used without auth in some flows)
+        try:
+            from fastapi import Request
+            # We'll log without user context since this endpoint doesn't require auth
+        except Exception:
+            pass
+
         return result
     except ValueError as ve:
         # Google key not set or invalid
@@ -119,6 +128,11 @@ def get_sectors():
         for r in rows:
             if r["sector"]:
                 default_sectors.add(r["sector"].strip())
+        # Include admin-added custom sectors
+        custom_rows = conn.execute("SELECT name FROM custom_sectors WHERE status = 'Active'").fetchall()
+        for r in custom_rows:
+            if r["name"]:
+                default_sectors.add(r["name"].strip())
     except Exception as e:
         print(f"[WARN] Failed to query sectors from policies table: {e}")
     finally:

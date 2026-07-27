@@ -17,7 +17,7 @@ export default function PartnerLogos() {
   const isDark = theme === "dark";
 
   return (
-    <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+    <div className="partner-logos">
       {/* Divider from PolicyIQ wordmark */}
       <div style={{
         width: 1, height: 22,

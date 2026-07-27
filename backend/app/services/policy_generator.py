@@ -2,7 +2,11 @@ import os
 import json
 import uuid
 from datetime import datetime
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
 from app.database import get_connection
 from app.ml.vector_store import semantic_search
 from data.country_profiles import COUNTRY_PROFILES
@@ -10,7 +14,7 @@ from app.services.sector_templates import SECTOR_FALLBACK_TEMPLATES
 from app.config import GOOGLE_API_KEY, LLM_PROVIDER, GEMINI_MODEL
 
 # Configure Gemini if GOOGLE_API_KEY is configured
-if GOOGLE_API_KEY:
+if GOOGLE_API_KEY and genai:
     genai.configure(api_key=GOOGLE_API_KEY)
 
 def lookup_policy_url_in_db(title: str, country: str = None) -> str:

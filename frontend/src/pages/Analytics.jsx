@@ -53,7 +53,7 @@ const ChartCard = ({ title, sub, badge, children, delay = 1, span1 }) => (
       gridColumn: span1 ? "span 1" : undefined,
     }}
   >
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
       <div>
         <div style={{
           display: "inline-block",
@@ -166,7 +166,7 @@ export default function Analytics() {
 
   return (
     <div style={{ flex: 1, overflowY: "auto", background: "var(--bg-deep)", minHeight: "100vh" }}>
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "32px 40px", width: "100%" }}>
+      <div className="page-container">
 
         {/* ── PAGE HEADER ───────────────────────────────────────────────── */}
         <div className="fade-up" style={{ marginBottom: "28px" }}>
@@ -176,13 +176,7 @@ export default function Analytics() {
               PREP / INSIGHTS
             </span>
           </div>
-          <h1 style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: "52px", fontWeight: 700,
-            color: "var(--text-main)",
-            margin: "0 0 12px 0",
-            letterSpacing: "-1.5px", lineHeight: "1.1",
-          }}>
+          <h1 className="page-title">
             Discover global <span className="half-highlight-custom">trends.</span>
           </h1>
           <p style={{ fontFamily: "DM Sans", fontSize: "14px", color: "var(--text-muted)", margin: 0 }}>
@@ -191,7 +185,7 @@ export default function Analytics() {
         </div>
 
         {/* ── SUMMARY STAT CARDS (same 4-card row as Dashboard) ─────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: "24px" }}>
+        <div className="stat-cards-grid-custom">
           <StatCard label="Total Policies"    value={totalPolicies}       sub="Across all statuses"      Icon={BarChart2}  delay={1} />
           <StatCard label="Recent (3yr)"      value={recentTrend}         sub="New policies 2022–2024"   Icon={TrendingUp} delay={2} />
           <StatCard label="Top Sector"        value={topSector?.value}    sub={topSector?.name}          Icon={Activity}   delay={3} />
@@ -199,7 +193,7 @@ export default function Analytics() {
         </div>
 
         {/* ── ROW 1: Top Countries + Sector Donut ───────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "20px", marginBottom: "20px" }}>
+        <div className="responsive-two-col-grid">
 
           {/* Top Countries — horizontal bars with rank numbers */}
           <ChartCard
@@ -275,7 +269,7 @@ export default function Analytics() {
                   <Tooltip contentStyle={TTStyle} />
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: "4px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "6px 12px", marginTop: "4px" }}>
                 {sectors.map((s, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <div style={{
@@ -328,7 +322,7 @@ export default function Analytics() {
         </div>
 
         {/* ── ROW 3: Regional Radar + Policy Status ─────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
+        <div className="responsive-equal-two-col-grid">
 
           {/* Regional Radar — cleaner */}
           <ChartCard
@@ -408,7 +402,7 @@ export default function Analytics() {
             marginBottom: "20px",
           }}>
             {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <div style={{
                   display: "inline-block",
@@ -427,7 +421,7 @@ export default function Analytics() {
             </div>
 
             {/* Feedback Stat Row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px", marginBottom: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "20px" }}>
               {[
                 { label: "Total Feedback", value: feedbackStats.total_feedback, color: "#2563eb",  Icon: MessageSquare },
                 { label: "Marked Helpful", value: feedbackStats.positive,        color: ACCENT,     Icon: ThumbsUp      },

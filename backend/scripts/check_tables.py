@@ -20,7 +20,9 @@ def check_tables():
         "user_uploads",
         "user_generates",
         "user_compares",
-        "feedback"
+        "feedback",
+        "trusted_sources",
+        "custom_sectors"
     ]
     
     print("=" * 60)
@@ -38,7 +40,7 @@ def check_tables():
         # Verify pgvector extension
         cur.execute("SELECT extname FROM pg_extension WHERE extname = 'vector';")
         vector_ext = cur.fetchone()
-        vector_status = "INSTALLED (✅)" if vector_ext else "NOT INSTALLED (❌)"
+        vector_status = "INSTALLED" if vector_ext else "NOT INSTALLED"
         print(f"pgvector Extension: {vector_status}")
         print("-" * 60)
         
@@ -60,14 +62,14 @@ def check_tables():
                     # Get row count
                     cur.execute(f"SELECT COUNT(*) FROM {table};")
                     count = cur.fetchone()[0]
-                    status = "EXISTS (✅)"
+                    status = "EXISTS"
                 else:
-                    status = "MISSING (❌)"
+                    status = "MISSING"
                     count = 0
                     
                 print(f"{table:<25} | {status:<12} | {count:<10}")
             except Exception as table_err:
-                print(f"{table:<25} | ERROR (❌)    | N/A")
+                print(f"{table:<25} | ERROR        | N/A")
                 conn.rollback()
                 
         print("=" * 60)

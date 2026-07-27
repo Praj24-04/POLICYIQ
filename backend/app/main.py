@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
-from app.routes import policies, analytics, compare, recommend, upload, auth, fetch, feedback, generate, ml
+from app.routes import policies, analytics, compare, recommend, upload, auth, fetch, feedback, generate, ml, admin
 from contextlib import asynccontextmanager
 from app.config import CORS_ORIGINS
 
@@ -113,6 +113,7 @@ app.include_router(fetch.router,     prefix="/api/fetch",     tags=["Live Fetch"
 app.include_router(feedback.router, prefix="/api/feedback", tags=["Feedback"])
 app.include_router(generate.router, prefix="/api/generate", tags=["Generate"])
 app.include_router(ml.router,        prefix="/api/ml",        tags=["ML System"])
+app.include_router(admin.router,     prefix="/api/admin",     tags=["Admin"])
 
 @app.get("/health", tags=["System Uptime"])
 def health_check():

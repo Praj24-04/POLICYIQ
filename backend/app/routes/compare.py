@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from app.services.comparator import compare_policies
 from app.ml.comparator_v2 import compare_policies_v2
-from app.auth import get_current_user
+from app.auth import get_current_user, log_activity
 from app.database import get_connection
 import json
 
@@ -37,6 +37,9 @@ def compare_v2(
             print(f"Error logging compare history: {db_err}")
         finally:
             conn.close()
+
+    log_activity(current_user["id"], current_user["email"], "compare", f"Compared policies: {id1} vs {id2}")
+
     return res
 
 @router.get("/download")

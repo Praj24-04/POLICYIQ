@@ -17,11 +17,36 @@ export default function UploadPolicy() {
   const [error,    setError]    = useState(null);
   const [dragging, setDragging] = useState(false);
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   const handleFile = (f) => {
-    if (!f || !f.name.endsWith(".pdf")) {
-      setError("Only PDF files are accepted.");
+    if (!f) return;
+
+    // Check file extension
+    if (!f.name.toLowerCase().endsWith(".pdf")) {
+      setError("Invalid file type. Only PDF files (.pdf) are accepted.");
       return;
     }
+
+    // Check MIME type
+    if (f.type && f.type !== "application/pdf") {
+      setError(`Invalid file format (${f.type}). Only PDF documents are supported.`);
+      return;
+    }
+
+    // Check file size
+    if (f.size > MAX_FILE_SIZE) {
+      const sizeMB = (f.size / (1024 * 1024)).toFixed(1);
+      setError(`File too large (${sizeMB} MB). Maximum allowed size is 10 MB.`);
+      return;
+    }
+
+    // Check for empty files
+    if (f.size === 0) {
+      setError("The selected file is empty. Please choose a valid PDF document.");
+      return;
+    }
+
     setError(null);
     setFile(f);
     setResult(null);
@@ -179,12 +204,7 @@ export default function UploadPolicy() {
         }
       `}</style>
 
-      <div style={{
-        maxWidth: "1100px",
-        margin: "0 auto",
-        padding: "32px 40px",
-        width: "100%"
-      }}>
+      <div className="page-container-sm">
 
         {/* ── Page Header ── */}
         <div style={{ marginBottom: "32px" }}>
@@ -196,11 +216,7 @@ export default function UploadPolicy() {
                   DISCOVER / INGESTION
                 </span>
               </div>
-              <h1 style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "48px",
-                fontWeight: 700,
-                color: "var(--text-main)",
+              <h1 className="page-title" style={{
                 margin: "0 0 8px 0",
                 letterSpacing: "-1px",
                 lineHeight: "1.1"
@@ -252,7 +268,7 @@ export default function UploadPolicy() {
           <input
             id="pdf-input"
             type="file"
-            accept=".pdf"
+            accept=".pdf,application/pdf"
             style={{ display: "none" }}
             onChange={e => handleFile(e.target.files[0])}
           />
@@ -682,11 +698,7 @@ export default function UploadPolicy() {
                       }}>
                         Expected Regulatory Benefits
                       </div>
-                      <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "8px"
-                      }}>
+                      <div className="upload-benefits-grid">
                         {rec.expected_benefits.map((b, j) => (
                           <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
                             <CheckCircle2

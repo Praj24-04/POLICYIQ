@@ -174,12 +174,9 @@ export default function GeneratePolicy() {
   };
 
   return (
-    <div style={{
-      maxWidth: "900px",
-      margin: "0 auto",
-      padding: "32px 40px",
+    <div className="page-container-narrow" style={{
       fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-      color: "#0a0a0a"
+      color: "var(--text-main)"
     }}>
       {/* Page Header */}
       <div style={{ marginBottom: "28px" }}>
@@ -202,15 +199,7 @@ export default function GeneratePolicy() {
             borderRadius: "1px"
           }} /> Discover / Creation
         </div>
-        <h1 style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: "52px",
-          fontWeight: 700,
-          color: "var(--text-main)",
-          margin: "0 0 16px 0",
-          letterSpacing: "-1.5px",
-          lineHeight: "1.1"
-        }}>
+        <h1 className="page-title">
           Draft new <span className="half-highlight-custom">policies.</span>
         </h1>
         <p style={{
@@ -290,7 +279,7 @@ export default function GeneratePolicy() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {/* Dropdowns Row */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="generate-config-grid">
                 {/* Country Selection */}
                 <div>
                   <label style={{
@@ -501,7 +490,7 @@ export default function GeneratePolicy() {
               </div>
 
               {/* Grid Columns */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "28px" }}>
+              <div className="generate-context-grid">
                 {/* Left Col - Country profile */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   <div>
@@ -618,29 +607,80 @@ export default function GeneratePolicy() {
           background: "#ffffff",
           border: "1px solid #e8e8e8",
           borderRadius: "8px",
-          padding: "48px 40px",
-          textAlign: "center",
+          padding: "40px 48px",
           animation: "fadeIn 0.3s ease-out"
         }}>
-          <LoadingSpinner label="" />
+          {/* Header row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#5c9e2e", animation: "spin 1.5s linear infinite" }} />
+              <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#9ca3af", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                Generation Pipeline Active
+              </span>
+            </div>
+            <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#9ca3af" }}>
+              Step {loadingStep + 1} of {LOADING_MESSAGES.length}
+            </span>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ height: "4px", background: "#f0f0f0", borderRadius: "2px", marginBottom: "24px", overflow: "hidden" }}>
+            <div style={{
+              height: "100%",
+              width: `${((loadingStep + 1) / LOADING_MESSAGES.length) * 100}%`,
+              background: "#5c9e2e",
+              borderRadius: "2px",
+              transition: "width 0.8s ease"
+            }} />
+          </div>
+
+          {/* Current step message */}
           <h2 style={{
             fontSize: "18px",
             fontWeight: 600,
-            marginTop: "20px",
             marginBottom: "8px",
-            color: "#0a0a0a"
+            color: "#0a0a0a",
+            textAlign: "center"
           }}>
             {LOADING_MESSAGES[loadingStep]}
           </h2>
           <p style={{
-            fontSize: "12.5px",
+            fontSize: "12px",
             fontFamily: "'JetBrains Mono', monospace",
             color: "#9ca3af",
             textTransform: "uppercase",
-            letterSpacing: "0.08em"
+            letterSpacing: "0.08em",
+            textAlign: "center",
+            marginBottom: "24px"
           }}>
-            Drafting framework · Please wait 15-30s
+            Drafting {sector} framework for {country} · ~15-30s
           </p>
+
+          {/* Step list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "360px", margin: "0 auto" }}>
+            {LOADING_MESSAGES.map((step, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", opacity: i <= loadingStep ? 1 : 0.35, transition: "opacity 0.4s ease" }}>
+                <div style={{
+                  width: "20px", height: "20px", borderRadius: "50%",
+                  background: i < loadingStep ? "#5c9e2e" : i === loadingStep ? "#f0f0f0" : "#f0f0f0",
+                  border: i === loadingStep ? "2px solid #5c9e2e" : i < loadingStep ? "none" : "1px solid #e8e8e8",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "10px", fontWeight: 700, color: i < loadingStep ? "#fff" : "#9ca3af",
+                  flexShrink: 0, transition: "all 0.3s ease"
+                }}>
+                  {i < loadingStep ? "✓" : i + 1}
+                </div>
+                <span style={{
+                  fontSize: "13px",
+                  fontFamily: "'DM Sans', sans-serif",
+                  color: i === loadingStep ? "#0a0a0a" : "#6b7280",
+                  fontWeight: i === loadingStep ? 600 : 400
+                }}>
+                  {step.replace('...', '')}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
