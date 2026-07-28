@@ -611,7 +611,7 @@ export default function GeneratePolicy() {
           animation: "fadeIn 0.3s ease-out"
         }}>
           {/* Header row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+          <div className="flex-toolbar" style={{ justifyContent: "space-between", marginBottom: "24px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#5c9e2e", animation: "spin 1.5s linear infinite" }} />
               <span style={{ fontSize: "11px", fontFamily: "'JetBrains Mono', monospace", color: "#9ca3af", letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -716,7 +716,9 @@ export default function GeneratePolicy() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "20px"
+            marginBottom: "20px",
+            flexWrap: "wrap",
+            gap: "12px"
           }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -758,7 +760,7 @@ export default function GeneratePolicy() {
               </h2>
             </div>
 
-            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexShrink: 0 }}>
+            <div className="flex-toolbar" style={{ gap: "10px", flexShrink: 0 }}>
               <button
                 onClick={resetGenerator}
                 style={{

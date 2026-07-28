@@ -89,7 +89,7 @@ function OverviewTab({ stats }) {
       </div>
 
       {/* Mini Charts */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20 }}>
+      <div className="two-column-grid" style={{ marginTop: 20 }}>
         <div className="card" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)", marginBottom: 12, fontFamily: "JetBrains Mono" }}>
             USER GROWTH (14 DAYS)
@@ -275,7 +275,7 @@ function UsersTab() {
       {/* Allocate Admin Form */}
       {showAddAdmin && (
         <div className="card fade-up" style={{ padding: 20, marginBottom: 20, border: "1px solid var(--border-lit)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div className="flex-toolbar" style={{ justifyContent: "space-between", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <ShieldCheck size={18} color="#5c9e2e" />
               <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "DM Sans", color: "var(--text-main)" }}>
@@ -298,7 +298,7 @@ function UsersTab() {
             </div>
           )}
 
-          <form onSubmit={handleCreateAdminSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 12, alignItems: "end" }}>
+          <form onSubmit={handleCreateAdminSubmit} className="four-column-form-grid">
             <div>
               <label style={{ display: "block", fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-muted)", marginBottom: 4 }}>
                 EMAIL ADDRESS *
@@ -509,7 +509,7 @@ function SystemTab() {
 
   return (
     <div className="fade-up">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div className="flex-toolbar" style={{ justifyContent: "space-between", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#5c9e2e" }} />
           <span style={{ fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
@@ -565,7 +565,7 @@ function SystemTab() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="two-column-grid">
         <div className="card" style={{ padding: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-main)", marginBottom: 12, fontFamily: "JetBrains Mono" }}>
             POLICIES BY SECTOR
@@ -757,7 +757,7 @@ function SectorsTab() {
             </div>
           )}
 
-          <form onSubmit={handleCreateSector} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <form onSubmit={handleCreateSector} className="two-column-grid">
             <div>
               <label style={{ display: "block", fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-muted)", marginBottom: 4 }}>
                 SECTOR NAME *
@@ -862,7 +862,7 @@ function SectorsTab() {
             </div>
           )}
 
-          <form onSubmit={handleUpdateSectorSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <form onSubmit={handleUpdateSectorSubmit} className="two-column-grid">
             <div>
               <label style={{ display: "block", fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-muted)", marginBottom: 4 }}>
                 SECTOR NAME *
@@ -1213,7 +1213,7 @@ function SourcesTab() {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="flex-toolbar" style={{ gap: 10 }}>
           <button
             onClick={() => { setShowAddModal(!showAddModal); setErrorMsg(""); setSuccessMsg(""); }}
             style={{
@@ -1259,7 +1259,7 @@ function SourcesTab() {
             </div>
           )}
 
-          <form onSubmit={handleCreateSource} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <form onSubmit={handleCreateSource} className="two-column-grid">
             <div>
               <label style={{ display: "block", fontSize: 11, fontFamily: "JetBrains Mono", color: "var(--text-muted)", marginBottom: 4 }}>
                 SOURCE NAME *

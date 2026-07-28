@@ -494,7 +494,7 @@ export default function Compare() {
                   </div>
                 </div>
                 
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   <button
                     onClick={reset}
                     className="action-btn-hover"
@@ -874,7 +874,7 @@ export default function Compare() {
             <div className="pdf-section" style={{ pageBreakInside: "avoid", marginBottom: "28px" }}>
               <SectionDivider label="04 COVERAGE GAPS" />
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div className="two-column-grid">
                 {/* Left Column — Policy A */}
                 <div style={{
                   border: "1px solid var(--border)",
@@ -1021,7 +1021,7 @@ export default function Compare() {
                   </div>
 
                   {/* Legend row */}
-                  <div style={{ display: "flex", gap: "20px", marginBottom: "16px" }}>
+                  <div style={{ display: "flex", gap: "20px", marginBottom: "16px", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span style={{ width: "8px", height: "8px", background: "#2563eb", backgroundColor: "#2563eb", display: "inline-block" }}></span>
                       <span style={{ fontSize: "11px", fontFamily: "DM Sans", color: "var(--text-muted)" }}>Policy A</span>
@@ -1245,7 +1245,7 @@ export default function Compare() {
                 borderRadius: "8px",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.08)"
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <Lightbulb size={14} color="#d97706" />
                     <span style={{ fontSize: "13px", fontFamily: "DM Sans", color: "var(--text-muted)" }}>

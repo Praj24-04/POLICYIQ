@@ -949,9 +949,9 @@ html {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   BREAKPOINT: ≤900px — Hide partner logos
+   BREAKPOINT: ≤1150px — Hide partner logos
    ═══════════════════════════════════════════════════════════════ */
-@media (max-width: 900px) {
+@media (max-width: 1150px) {
   .partner-logos {
     display: none !important;
   }
@@ -1372,4 +1372,47 @@ html {
     padding: 12px 24px !important;
     justify-content: center;
   }
+}
+
+/* ── Reusable Responsive Layout Utilities ── */
+
+/* Reusable grid for stacked/side-by-side grids or forms */
+.two-column-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Reusable grid for 5-factor scoring cards */
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .score-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .score-grid { grid-template-columns: 1fr; }
+}
+
+/* Reusable grid for admin user allocate form */
+.four-column-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+@media (max-width: 768px) {
+  .four-column-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Reusable flex row toolbar for filters & actions */
+.flex-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }

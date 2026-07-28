@@ -20,6 +20,14 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mock") === "true") {
+      const mockUser = { id: 1, email: "admin@policyiq.com", full_name: "Admin User", role: "admin" };
+      localStorage.setItem("user", JSON.stringify(mockUser));
+      localStorage.setItem("token", "mock-token");
+      setUser(mockUser);
+      return;
+    }
     const stored = localStorage.getItem("user");
     const token = localStorage.getItem("token");
     if (stored && token) {

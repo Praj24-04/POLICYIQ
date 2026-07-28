@@ -293,7 +293,7 @@ export default function Recommend() {
           <>
             {/* Header */}
             <div style={{ marginBottom: "32px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div className="flex-toolbar" style={{ justifyContent: "space-between" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                     <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--cyan)" }} />
@@ -655,7 +655,7 @@ export default function Recommend() {
               </div>
               
               {result && !loading && (
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <div className="flex-toolbar" style={{ gap: "16px" }}>
                   <div style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>
                     {result.recommendations?.length || 0} recommendations
                   </div>
@@ -849,7 +849,7 @@ export default function Recommend() {
                 width: "100%"
               }}>
                 {/* Header row */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
+                <div className="flex-toolbar" style={{ justifyContent: "space-between", marginBottom: "24px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--cyan)", animation: "spin 1.5s linear infinite" }} />
                     <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -988,7 +988,9 @@ export default function Recommend() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    marginBottom: showWeightsPanel ? "16px" : "4px"
+                    marginBottom: showWeightsPanel ? "16px" : "4px",
+                    flexWrap: "wrap",
+                    gap: "12px"
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, marginRight: "16px" }}>
                       <div style={{ width: "20px", height: "1px", background: "var(--border)" }} />
@@ -1504,11 +1506,8 @@ export default function Recommend() {
                               </div>
 
                               {/* Factor values mini grid */}
-                              <div style={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(5, 1fr)",
+                              <div className="score-grid" style={{
                                 textAlign: "center",
-                                gap: "4px",
                                 marginTop: "8px",
                                 paddingTop: "8px",
                                 borderTop: "1px solid #e8e8e8",
@@ -1641,7 +1640,8 @@ export default function Recommend() {
         <div style={{
           position: "fixed",
           top: 0, right: 0, bottom: 0,
-          width: "540px",
+          width: "100%",
+          maxWidth: "540px",
           background: "white",
           borderLeft: "1px solid #e8e8e8",
           boxShadow: "-8px 0 24px rgba(0,0,0,0.06)",

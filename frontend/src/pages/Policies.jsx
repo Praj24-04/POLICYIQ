@@ -30,8 +30,8 @@ export default function Policies() {
   };
 
   useEffect(() => {
-    fetchSectors().then(setSectors);
-    fetchRegions().then(setRegions);
+    fetchSectors().then(d => setSectors(d || []));
+    fetchRegions().then(d => setRegions(d || []));
     // Fetch all policies once to extract titles for autocomplete suggestions
     fetchPolicies({}).then(data => {
       if (data) {
@@ -126,7 +126,8 @@ export default function Policies() {
               fontSize: "11px", 
               color: "var(--text-muted)",
               fontWeight: 500,
-              alignItems: "center"
+              alignItems: "center",
+              flexWrap: "wrap"
             }}>
               <span>ACTIVE <strong style={{ color: "var(--text-main)", marginLeft: 4 }}>{policies.filter(p => p.year >= 2023).length || 240}</strong></span>
               <span style={{ color: "var(--border)" }}>|</span>
@@ -189,7 +190,8 @@ export default function Policies() {
           display: "flex",
           gap: "12px",
           marginBottom: "16px",
-          width: "100%"
+          width: "100%",
+          flexWrap: "wrap"
         }}>
           {/* Main Search Input */}
           <div style={{ position: "relative", flex: 3, minWidth: "200px" }}>
