@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Upload, FileText, Sparkles, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, Sparkles, CheckCircle2, Download } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { getToken, BASE, clearApiCache } from "../services/api";
+import { jsPDF } from "jspdf";
 
 const MaturityColor = {
   nascent:    { bg: "rgba(244,63,94,0.08)",  border: "rgba(244,63,94,0.2)",   text: "#f43f5e" },
@@ -16,6 +17,7 @@ export default function UploadPolicy() {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState(null);
   const [dragging, setDragging] = useState(false);
+  const [requirements, setRequirements] = useState("");
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -59,6 +61,9 @@ export default function UploadPolicy() {
 
     const formData = new FormData();
     formData.append("file", file);
+    if (requirements.trim()) {
+      formData.append("user_prompt", requirements.trim());
+    }
 
     try {
       const token = getToken();
@@ -76,6 +81,157 @@ export default function UploadPolicy() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!result) return;
+    
+    // Helper function for local client-side jsPDF fallback
+    const runJsPDFFallback = () => {
+      const doc = new jsPDF();
+      const primaryColor = [92, 158, 46]; // #5c9e2e
+      const textColor = [33, 37, 41];
+      const grayColor = [108, 117, 125];
+      
+      // Header background bar
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, 210, 25, "F");
+      
+      // Header Text
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("POLICYIQ - DOCUMENT ANALYSIS REPORT (FALLBACK)", 14, 16);
+      
+      // Metadata block
+      doc.setTextColor(...textColor);
+      doc.setFontSize(12);
+      doc.text(`Document Title: ${result.title || "Uploaded Document"}`, 14, 38);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Sector: ${result.detected_sector || "Auto-detected"}`, 14, 46);
+      doc.text(`Word Count: ${result.word_count ? result.word_count.toLocaleString() : "N/A"} words`, 14, 52);
+      if (result.year) {
+        doc.text(`Year: ${result.year}`, 140, 46);
+      }
+      doc.text(`Countries Detected: ${result.extracted_countries?.join(", ") || "None"}`, 140, 52);
+      
+      // Section: Content Preview
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("CONTENT PREVIEW", 14, 65);
+      doc.line(14, 67, 196, 67);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      const splitPreview = doc.splitTextToSize(result.content_preview || "", 182);
+      doc.text(splitPreview, 14, 73);
+      
+      // Similar Policies section
+      let yPos = 73 + (splitPreview.length * 4) + 12;
+      if (result.similar_policies?.length > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...textColor);
+        doc.text("SIMILAR POLICIES IN DATABASE", 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 8;
+        
+        result.similar_policies.forEach((p, idx) => {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text(`${idx + 1}. ${p.title} (${Math.round(p.similarity * 100)}% Match)`, 14, yPos);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(...grayColor);
+          doc.text(`Country: ${p.country} | Sector: ${p.sector}`, 18, yPos + 5);
+          yPos += 12;
+        });
+        yPos += 4;
+      }
+      
+      // Recommendations Section
+      if (result.recommendations?.length > 0) {
+        // Add page break if near the bottom
+        if (yPos > 150) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...textColor);
+        doc.text("ADOPTION RECOMMENDATIONS", 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        result.recommendations.forEach((rec, idx) => {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(...textColor);
+          doc.text(`${idx + 1}. ${rec.country} (Need Index: ${rec.need_score.toFixed(3)})`, 14, yPos);
+          
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(80, 80, 80);
+          const splitReasoning = doc.splitTextToSize(rec.reasoning || "", 182);
+          doc.text(splitReasoning, 18, yPos + 5);
+          
+          yPos += 5 + (splitReasoning.length * 4) + 4;
+          
+          // Expected Benefits bullet points
+          if (rec.expected_benefits?.length > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.text("Expected Benefits:", 18, yPos);
+            yPos += 4;
+            
+            doc.setFont("helvetica", "normal");
+            rec.expected_benefits.forEach((benefit) => {
+              doc.text(`- ${benefit}`, 22, yPos);
+              yPos += 4;
+            });
+          }
+          yPos += 6;
+        });
+      }
+      
+      // Save report
+      const cleanTitle = (result.title || "document_analysis").toLowerCase().replace(/[^a-z0-9]/g, "_");
+      doc.save(`policyiq_analysis_${cleanTitle}.pdf`);
+    };
+
+    try {
+      const token = getToken();
+      const res = await fetch(`${BASE}/upload/download-pdf`, {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(result),
+      });
+      if (!res.ok) throw new Error("Backend PDF generation failed");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `PolicyIQ_Analysis_${(result.title || "document").replace(/\s+/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.warn("Backend PDF generation failed, using client-side jsPDF fallback:", err);
+      runJsPDFFallback();
     }
   };
 
@@ -213,7 +369,7 @@ export default function UploadPolicy() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--cyan)" }} />
                 <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", letterSpacing: "0.1em" }}>
-                  DISCOVER / INGESTION
+                  DISCOVER / ANALYSIS
                 </span>
               </div>
               <h1 className="page-title" style={{
@@ -221,9 +377,9 @@ export default function UploadPolicy() {
                 letterSpacing: "-1px",
                 lineHeight: "1.1"
               }}>
-                Analyze custom{" "}
+                Analyse policy{" "}
                 <span style={{ position: "relative", display: "inline-block", zIndex: 1 }}>
-                  documents.
+                  document.
                   <span style={{
                     position: "absolute",
                     bottom: "4px",
@@ -236,7 +392,7 @@ export default function UploadPolicy() {
                 </span>
               </h1>
               <p style={{ fontFamily: "DM Sans", fontSize: "15px", color: "var(--text-muted)", margin: 0 }}>
-                Upload any policy PDF to get ML-powered recommendations and similarity analysis
+                Upload a policy PDF and specify analysis requirements to get ML-powered recommendations and similarity analysis
               </p>
             </div>
             <div style={{
@@ -324,11 +480,60 @@ export default function UploadPolicy() {
           </div>
         )}
 
+        {/* ── Requirements Chatbox ── */}
+        {file && !loading && (
+          <div style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            padding: "20px",
+            marginBottom: "16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: "#5c9e2e" }} />
+              <span style={{
+                fontSize: "12px",
+                fontFamily: "JetBrains Mono",
+                color: "var(--text-main)",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase"
+              }}>
+                Analysis Guidance & Focus Areas (Optional)
+              </span>
+            </div>
+            <textarea
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="Describe what you want to extract, analyze, or focus on in this document (e.g. 'Show the grading scheme details', 'What are the main penalties?', 'Extract data privacy rules')..."
+              style={{
+                width: "100%",
+                minHeight: "80px",
+                background: "var(--bg-hover)",
+                border: "1px solid var(--border)",
+                borderRadius: "6px",
+                padding: "12px 14px",
+                fontSize: "14px",
+                fontFamily: "DM Sans",
+                color: "var(--text-main)",
+                resize: "vertical",
+                outline: "none",
+                transition: "border-color 0.15s ease",
+              }}
+              onFocus={(e) => e.target.style.borderColor = "#5c9e2e"}
+              onBlur={(e) => e.target.style.borderColor = "var(--border)"}
+            />
+          </div>
+        )}
+
         {/* ── Analyze Button ── */}
         {file && !loading && (
           <button className="upload-btn-primary" onClick={handleUpload}>
             <Sparkles size={15} />
-            Analyze Policy Document
+            Analyse Policy Document
           </button>
         )}
 
@@ -341,6 +546,32 @@ export default function UploadPolicy() {
 
             {/* ── Document Metadata Card ── */}
             <SectionDivider label="Document Analysis" />
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px" }}>
+              <button
+                onClick={handleDownloadPDF}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "#5c9e2e",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px 16px",
+                  fontFamily: "DM Sans",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  transition: "background 0.15s ease"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#4d7c0f"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "#5c9e2e"}
+              >
+                <Download size={14} />
+                Download Report PDF
+              </button>
+            </div>
             <div style={{
               background: "var(--bg-card)",
               border: "1px solid var(--border)",

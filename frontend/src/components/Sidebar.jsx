@@ -28,7 +28,7 @@ const categories = [
     links: [
       { to: "/recommend", icon: Sparkles, label: "Recommender" },
       { to: "/generate", icon: FileText, label: "Generate Policy" },
-      { to: "/upload", icon: Upload, label: "Upload PDF" },
+      { to: "/upload", icon: Upload, label: "Analyse Document" },
     ]
   }
 ];

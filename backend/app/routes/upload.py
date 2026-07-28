@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form, Response
 from app.services.pdf_service import extract_text_from_pdf, extract_policy_metadata
 from app.services.nlp_service import extract_countries
 from app.ml.recommender_v2 import get_recommendations_for_text
@@ -11,6 +11,7 @@ router = APIRouter()
 @router.post("/pdf")
 async def upload_policy_pdf(
     file: UploadFile = File(...),
+    user_prompt: str = Form(None),
     current_user: dict = Depends(get_current_user)
 ):
     # Validate file type
@@ -39,7 +40,8 @@ async def upload_policy_pdf(
     recommendations = get_recommendations_for_text(
         text=text,
         tags=metadata["tags"],
-        title=metadata["title"]
+        title=metadata["title"],
+        user_prompt=user_prompt
     )
     
     final_title = recommendations.get("detected_title") or metadata["title"]
@@ -87,3 +89,42 @@ async def upload_policy_pdf(
         "ml_method": recommendations["ml_method"],
         "executive_summary": recommendations.get("executive_summary", "")
     }
+
+
+@router.post("/download-pdf")
+def download_upload_pdf(
+    result_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    from app.services.pdf_generator import generate_recommendations_pdf
+
+    # Map frontend results dictionary to pdf generator format
+    rec_data = {
+        "source_policy": {
+            "title": result_data.get("title", "Uploaded Document"),
+            "country": "Ingested Document",
+            "sector": result_data.get("detected_sector", "Cross-Domain"),
+            "year": result_data.get("year") or "N/A"
+        },
+        "recommendations": result_data.get("recommendations", []),
+        "weights": {
+            "sector_gap": 0.35,
+            "regulatory_maturity": 0.25,
+            "semantic_need": 0.20,
+            "regional_pressure": 0.12,
+            "economic_tier": 0.08
+        }
+    }
+    
+    pdf_bytes = generate_recommendations_pdf(rec_data)
+    
+    clean_title = (result_data.get("title") or "Uploaded_Document").replace(" ", "_")
+    filename = f"PolicyIQ_Analysis_{clean_title}.pdf"
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )

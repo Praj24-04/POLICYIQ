@@ -1225,7 +1225,7 @@ def get_recommendations_v2(policy_id: str, top_n: int = 6, weights: dict = None)
     }
 
 
-def get_recommendations_for_text_llm(text: str, top_n: int = 6) -> dict:
+def get_recommendations_for_text_llm(text: str, top_n: int = 6, user_requirements: str = None) -> dict:
     """Configures and runs Gemini LLM to analyze the uploaded document, extract metadata, and recommend countries."""
     import json
     import google.generativeai as genai
@@ -1249,6 +1249,10 @@ def get_recommendations_for_text_llm(text: str, top_n: int = 6) -> dict:
         "classify it correctly, and generate top-tier recommendations for countries that would benefit most from adopting it."
     )
     
+    requirements_section = ""
+    if user_requirements:
+        requirements_section = f"\n    Additional User Focus/Requirements:\n    -----------------------------------\n    {user_requirements}\n    -----------------------------------\n    Please tailor the executive summary and country recommendations to focus on these specific requirements.\n"
+    
     user_prompt = f"""
     Below is the text of the uploaded policy document:
     ---
@@ -1259,6 +1263,7 @@ def get_recommendations_for_text_llm(text: str, top_n: int = 6) -> dict:
     ---
     {json.dumps(simplified_profiles, indent=2)}
     ---
+    {requirements_section}
     
     Tasks:
     1. Identify the true, official Title of this policy (exclude generic system header markers like 'OFFICIAL POLICY FRAMEWORK' or 'POLICYIQ INTELLIGENCE PLATFORM' if they are present; instead, look for the actual policy title, e.g. "Prevention of Sexual Harassment at Workplace Rules").
@@ -1318,7 +1323,7 @@ def get_recommendations_for_text_llm(text: str, top_n: int = 6) -> dict:
     return res_dict
 
 
-def get_recommendations_for_text(text: str, tags: list, title: str, top_n: int = 6) -> dict:
+def get_recommendations_for_text(text: str, tags: list, title: str, top_n: int = 6, user_prompt: str = None) -> dict:
     """V2 upload-based recommendation: uses LLM or 5-factor scoring system for uploaded documents."""
     from app.config import LLM_PROVIDER, GOOGLE_API_KEY
     from app.ml.vector_store import semantic_search
@@ -1327,7 +1332,7 @@ def get_recommendations_for_text(text: str, tags: list, title: str, top_n: int =
     if LLM_PROVIDER == "gemini" and GOOGLE_API_KEY:
         try:
             logger.info("Using Gemini LLM for uploaded policy analysis and recommendations...")
-            llm_res = get_recommendations_for_text_llm(text, top_n=top_n)
+            llm_res = get_recommendations_for_text_llm(text, top_n=top_n, user_requirements=user_prompt)
             
             detected_title = llm_res.get("title") or title
             detected_sector = llm_res.get("sector") or "Cross-Domain"
