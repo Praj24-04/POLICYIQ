@@ -4,7 +4,7 @@ PolicyIQ is a state-of-the-art, AI-powered regulatory intelligence platform desi
 
 ---
 
-## 🔬 Core Machine Learning & NLP Architecture
+## 🔬 Core Machine Learning & NLP Architecture   
 
 ### 1. Hybrid Bi-Encoder Embedding Engine
 * **Primary Deep Model:** Employs **Legal-BERT** (`nlpaueb/legal-bert-base-uncased`) via SentenceTransformers to extract dense, domain-specific semantic profiles from complex legal and regulatory vocabularies.
