@@ -186,13 +186,7 @@ export default function Policies() {
         </div>
 
         {/* ── Search & Location Dual Inputs ── */}
-        <div style={{
-          display: "flex",
-          gap: "12px",
-          marginBottom: "16px",
-          width: "100%",
-          flexWrap: "wrap"
-        }}>
+        <div className="policies-search-row">
           {/* Main Search Input */}
           <div style={{ position: "relative", flex: 3, minWidth: "200px" }}>
             <Search 

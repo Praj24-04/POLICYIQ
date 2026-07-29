@@ -4,12 +4,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { getToken, BASE, clearApiCache } from "../services/api";
 import { jsPDF } from "jspdf";
 
-const MaturityColor = {
-  nascent:    { bg: "rgba(244,63,94,0.08)",  border: "rgba(244,63,94,0.2)",   text: "#f43f5e" },
-  emerging:   { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)",  text: "#f59e0b" },
-  developing: { bg: "rgba(92,158,46,0.08)",  border: "rgba(92,158,46,0.2)",   text: "#5c9e2e" },
-  advanced:   { bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.2)",  text: "#10b981" },
-};
+
 
 export default function UploadPolicy() {
   const [file,     setFile]     = useState(null);
@@ -791,7 +786,7 @@ export default function UploadPolicy() {
                     <div style={{ fontWeight: 600, color: "var(--text-main)", marginBottom: "4px" }}>
                       {f.name}
                     </div>
-                    <span style={{ color: "var(--text-muted)", fontSize: "11px", display: "block", lineHeight: "1.3" }}>{f.desc}</span>
+                      <span style={{ color: "var(--text-muted)", fontSize: "11px", display: "block", lineHeight: "1.3" }}>{f.desc}</span>
                   </div>
                 ))}
               </div>
@@ -799,7 +794,6 @@ export default function UploadPolicy() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {result.recommendations.map((rec, i) => {
-                const mc = MaturityColor[rec.regulatory_maturity] || MaturityColor.developing;
                 const needPctVal = rec.need_score * 100;
                 const needPct = needPctVal.toFixed(1);
                 const needColor = rec.need_score > 0.6 ? "#f43f5e" : rec.need_score > 0.4 ? "#f59e0b" : "#5c9e2e";
@@ -807,14 +801,9 @@ export default function UploadPolicy() {
                 return (
                   <div key={rec.country} className={`rec-card fade-up fade-up-${Math.min(i + 1, 5)}`}>
                     {/* Card Header */}
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "16px"
-                    }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                    <div className="rec-card-header">
+                      <div className="rec-header-left">
+                        <div className="rec-title-row">
                           <span style={{
                             fontFamily: "'DM Sans', sans-serif",
                             fontWeight: 700,
@@ -823,38 +812,23 @@ export default function UploadPolicy() {
                           }}>
                             #{i + 1} {rec.country}
                           </span>
-                          <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "DM Sans" }}>
+                          <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "DM Sans", whiteSpace: "nowrap" }}>
                             · {rec.region}
                           </span>
+                        </div>
+
+                        <div className="rec-badges-row">
                           {!rec.already_has_sector && (
-                            <span style={{
-                              fontSize: "10px",
-                              padding: "2px 8px",
-                              borderRadius: "4px",
-                              background: "rgba(244,63,94,0.06)",
-                              color: "#f43f5e",
-                              border: "1px solid rgba(244,63,94,0.18)",
-                              fontFamily: "JetBrains Mono",
-                              fontWeight: 600
-                            }}>
+                            <span className="badge-custom badge-custom--danger">
                               Missing sector
                             </span>
                           )}
+                          <span className={`badge-custom badge-custom--${rec.regulatory_maturity?.toLowerCase() || 'developing'}`}>
+                            {rec.regulatory_maturity?.toUpperCase()} MATURITY
+                          </span>
                         </div>
-                        <span style={{
-                          fontSize: "11px",
-                          padding: "3px 8px",
-                          borderRadius: "4px",
-                          background: mc.bg,
-                          color: mc.text,
-                          border: `1px solid ${mc.border}`,
-                          fontFamily: "JetBrains Mono",
-                          fontWeight: 600
-                        }}>
-                          {rec.regulatory_maturity?.toUpperCase()} MATURITY
-                        </span>
                       </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div className="rec-header-right">
                         <div style={{
                           fontSize: "10px",
                           color: "var(--text-muted)",

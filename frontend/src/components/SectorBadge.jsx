@@ -8,11 +8,9 @@ export default function SectorBadge({ sector, size = "sm" }) {
   const fs  = size === "sm" ? 11 : 12;
 
   return (
-    <span className={map[sector] || "pill-ai"} style={{
-      padding: pad, borderRadius: 20,
-      fontSize: fs, fontWeight: 500,
-      fontFamily: "DM Sans", whiteSpace: "nowrap",
-      display: "inline-block",
+    <span className={`${map[sector] || "pill-ai"} sector-badge-custom`} style={{
+      padding: pad,
+      fontSize: fs,
     }}>
       {sector}
     </span>

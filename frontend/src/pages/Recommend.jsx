@@ -1055,19 +1055,19 @@ export default function Recommend() {
                               display: "flex",
                               justifyContent: "space-between",
                               marginBottom: "6px",
-                              alignItems: "baseline",
+                              alignItems: "flex-end",
                               flexWrap: "wrap",
                               gap: "4px 8px"
                             }}>
                               <span style={{ fontSize: "14px", fontFamily: "DM Sans", fontWeight: 500, color: "var(--text-main)" }}>
                                 {item.label}
                               </span>
-                              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                                <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>
-                                  default {item.desc}%
-                                </span>
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", textAlign: "right" }}>
                                 <span style={{ fontSize: "14px", fontFamily: "JetBrains Mono", color: "var(--text-main)", fontWeight: 600 }}>
                                   {weights[item.key]}%
+                                </span>
+                                <span style={{ fontSize: "10px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", marginTop: "2px" }}>
+                                  (default {item.desc}%)
                                 </span>
                               </div>
                             </div>
@@ -1308,68 +1308,39 @@ export default function Recommend() {
                         <div style={{ padding: "20px 24px" }}>
                           
                           {/* TOP ROW (country header) */}
-                          <div style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginBottom: "16px"
-                          }}>
-                            <div>
-                              <div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}>
+                          <div className="rec-card-header">
+                            <div className="rec-header-left">
+                              <div className="rec-title-row">
                                 <span style={{ fontFamily: "JetBrains Mono", fontSize: "12px", color: "#9ca3af" }}>
                                   #{i + 1}
                                 </span>
-                                <span style={{ fontFamily: "DM Sans", fontWeight: 700, fontSize: "22px", color: "#0a0a0a" }}>
+                                <span style={{ fontFamily: "DM Sans", fontWeight: 700, fontSize: "22px", color: "var(--text-main)" }}>
                                   {rec.country}
                                 </span>
-                                <span style={{ fontFamily: "DM Sans", fontSize: "14px", color: "#9ca3af" }}>
+                                <span style={{ fontFamily: "DM Sans", fontSize: "14px", color: "#9ca3af", whiteSpace: "nowrap" }}>
                                   · {rec.region}
                                 </span>
                               </div>
 
-                              <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                              <div className="rec-badges-row">
                                 {rec.already_has_sector ? (
-                                  <span style={{ 
-                                    fontSize: "10px", 
-                                    padding: "3px 8px", 
-                                    borderRadius: "3px", 
-                                    background: "#f5f5f5", 
-                                    color: "#6b7280", 
-                                    border: "1px solid #e8e8e8",
-                                    fontFamily: "JetBrains Mono" 
-                                  }}>
+                                  <span className="badge-custom badge-custom--neutral">
                                     has sector
                                   </span>
                                 ) : (
-                                  <span style={{ 
-                                    fontSize: "10px", 
-                                    padding: "3px 8px", 
-                                    borderRadius: "3px", 
-                                    background: "#fef2f2", 
-                                    color: "#dc2626", 
-                                    border: "1px solid #fecaca",
-                                    fontFamily: "JetBrains Mono" 
-                                  }}>
+                                  <span className="badge-custom badge-custom--danger">
                                     Missing sector
                                   </span>
                                 )}
 
-                                <span style={{ 
-                                  fontSize: "10px", 
-                                  padding: "3px 8px", 
-                                  borderRadius: "3px", 
-                                  background: "#f5f5f5", 
-                                  color: "#6b7280", 
-                                  border: "1px solid #e8e8e8", 
-                                  fontFamily: "JetBrains Mono"
-                                }}>
-                                  {rec.regulatory_maturity} maturity
+                                <span className={`badge-custom badge-custom--${rec.regulatory_maturity?.toLowerCase() || 'developing'}`}>
+                                  {rec.regulatory_maturity?.toUpperCase()} MATURITY
                                 </span>
                               </div>
                             </div>
 
-                            <div style={{ textAlign: "right" }}>
-                              <div style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "#9ca3af" }}>
+                            <div className="rec-header-right">
+                              <div style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "#9ca3af", letterSpacing: "0.08em" }}>
                                 NEED INDEX
                               </div>
                               <div style={{

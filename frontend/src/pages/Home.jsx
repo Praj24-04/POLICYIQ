@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Scale, Lightbulb, FilePlus, Upload, Globe2 } from "lucide-react";
 import TopNavbar from "../components/TopNavbar";
+import PartnerLogos from "../components/PartnerBar";
 import { fetchPolicies } from "../services/api";
 import PolicyCard from "../components/PolicyCard";
 
@@ -564,6 +565,8 @@ export default function Home() {
             </div>
             <div style={{ fontWeight: 800, fontSize: 16, color: "#FFFFFF", letterSpacing: "-0.5px" }}>PolicyIQ</div>
           </div>
+
+          <PartnerLogos className="partner-logos-footer" showDivider={false} forceDark={true} />
 
           <div style={{ color: "#57534E", fontSize: 12, fontFamily: "JetBrains Mono" }}>
             © 2026 PolicyIQ. built globally.

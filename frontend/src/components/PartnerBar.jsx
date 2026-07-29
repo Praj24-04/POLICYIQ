@@ -12,20 +12,22 @@ const PARTNERS = [
  * Uses CSS mix-blend-mode to knock out the image's own white/dark
  * background so logos appear to float directly on the navbar.
  */
-export default function PartnerLogos() {
+export default function PartnerLogos({ className = "partner-logos", showDivider = true, forceDark = false }) {
   const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const isDark = forceDark || theme === "dark";
 
   return (
-    <div className="partner-logos">
+    <div className={className}>
       {/* Divider from PolicyIQ wordmark */}
-      <div style={{
-        width: 1, height: 22,
-        background: "var(--border)",
-        margin: "0 16px",
-        opacity: 0.5,
-        flexShrink: 0,
-      }} />
+      {showDivider && (
+        <div style={{
+          width: 1, height: 22,
+          background: "var(--border)",
+          margin: "0 16px",
+          opacity: 0.5,
+          flexShrink: 0,
+        }} />
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         {PARTNERS.map((p, i) => (

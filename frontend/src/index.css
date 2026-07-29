@@ -1416,3 +1416,225 @@ html {
   gap: 12px;
   align-items: center;
 }
+
+/* =========================================================================
+   COMPONENTS: Reusable Custom Badge System (BEM)
+   ========================================================================= */
+.badge-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+
+.badge-custom--danger {
+  background: rgba(244, 63, 94, 0.06);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.18);
+}
+
+.badge-custom--neutral {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.badge-custom--nascent {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  color: #f43f5e;
+}
+
+.badge-custom--emerging {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.badge-custom--developing {
+  background: rgba(92, 158, 46, 0.08);
+  border: 1px solid rgba(92, 158, 46, 0.2);
+  color: #5c9e2e;
+}
+
+.badge-custom--advanced {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.sector-badge-custom {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  border-radius: 20px;
+}
+
+/* =========================================================================
+   COMPONENTS: Partner Logos Footer Placement
+   ========================================================================= */
+.partner-logos-footer {
+  display: none;
+}
+
+@media (max-width: 1150px) {
+  .partner-logos-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 16px 0;
+  }
+}
+
+/* =========================================================================
+   COMPONENTS: Compare Page Header & Filter Layouts
+   ========================================================================= */
+.compare-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.compare-header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.compare-header-actions button {
+  min-width: 170px;
+  justify-content: center;
+}
+
+@media (max-width: 650px) {
+  .compare-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.search-filter-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.search-filter-layout .search-wrapper-custom {
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+}
+
+.search-filter-layout .filters-wrapper-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .search-filter-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .search-filter-layout .search-wrapper-custom {
+    max-width: 100%;
+  }
+}
+
+.policies-search-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 750px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================================
+   COMPONENTS: Recommendation & Upload Results Card Header
+   ========================================================================= */
+.rec-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.rec-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.rec-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rec-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  row-gap: 6px;
+}
+
+.rec-header-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Tablet breakpoint: 650px to 900px */
+@media (max-width: 900px) {
+  .rec-card-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Phone breakpoint: <= 650px */
+@media (max-width: 650px) {
+  .rec-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .rec-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .rec-header-right {
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    margin-top: 6px;
+  }
+}

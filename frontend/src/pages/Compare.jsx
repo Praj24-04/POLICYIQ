@@ -188,71 +188,74 @@ export default function Compare() {
         {/* SECTOR FILTER + POLICY GRID (steps 1 & 2) */}
         {step < 3 && (
           <>
-            {/* Search Input */}
-            <div style={{ position: "relative", marginBottom: "16px", width: "100%" }}>
-              <span style={{ 
-                position: "absolute", 
-                left: 16, 
-                top: "50%", 
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-                display: "flex",
-                alignItems: "center",
-                color: "var(--text-dim)"
-              }}>
-                <Search size={16} />
-              </span>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search policies by title, sector, or country..."
-                className="search-input-custom"
-                style={{
-                  width: "100%",
-                  height: 48,
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  padding: "0 16px 0 44px",
-                  outline: "none",
-                  fontSize: "14px",
-                  fontFamily: "'DM Sans', sans-serif",
-                  background: "var(--bg-card)",
-                  color: "var(--text-main)",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
-                }}
-              />
-            </div>
+            <div className="search-filter-layout">
+              {/* Search Input */}
+              <div className="search-wrapper-custom">
+                <span style={{ 
+                  position: "absolute", 
+                  left: 16, 
+                  top: "50%", 
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "var(--text-dim)"
+                }}>
+                  <Search size={16} />
+                </span>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search policies by title, sector, or country..."
+                  className="search-input-custom"
+                  style={{
+                    width: "100%",
+                    height: 48,
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    padding: "0 16px 0 44px",
+                    outline: "none",
+                    fontSize: "14px",
+                    fontFamily: "'DM Sans', sans-serif",
+                    background: "var(--bg-card)",
+                    color: "var(--text-main)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                  }}
+                />
+              </div>
 
-            {/* Filter pills row */}
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap", alignItems: "center" }}>
-              {filterMapping.map(f => {
-                const isActive = sectorFilter === f.value;
-                return (
-                  <button
-                    key={f.label}
-                    onClick={() => setSectorFilter(f.value)}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontFamily: "DM Sans",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      outline: "none",
-                      border: isActive ? "1px solid var(--cyan)" : "none",
-                      background: isActive ? "var(--accent-light)" : "transparent",
-                      backgroundColor: isActive ? "var(--accent-light)" : "transparent",
-                      color: isActive ? "var(--stat-label)" : "var(--text-dim)"
-                    }}
-                  >
-                    {f.label}
-                  </button>
-                );
-              })}
- 
-              {/* Policy count */}
-              <div style={{ marginLeft: "auto", fontSize: "10px", fontFamily: "JetBrains Mono", color: "var(--text-dim)" }}>
-                Showing {filtered.length} policies
+              {/* Filter pills row */}
+              <div className="filters-wrapper-custom">
+                {filterMapping.map(f => {
+                  const isActive = sectorFilter === f.value;
+                  return (
+                    <button
+                      key={f.label}
+                      onClick={() => setSectorFilter(f.value)}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        fontFamily: "DM Sans",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        outline: "none",
+                        border: isActive ? "1px solid var(--cyan)" : "none",
+                        background: isActive ? "var(--accent-light)" : "transparent",
+                        backgroundColor: isActive ? "var(--accent-light)" : "transparent",
+                        color: isActive ? "var(--stat-label)" : "var(--text-dim)",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+   
+                {/* Policy count */}
+                <div style={{ fontSize: "10px", fontFamily: "JetBrains Mono", color: "var(--text-dim)", marginLeft: "8px" }}>
+                  Showing {filtered.length} policies
+                </div>
               </div>
             </div>
 
@@ -482,7 +485,7 @@ export default function Compare() {
           >
             {/* SECTION 0 — REPORT HEADER */}
             <div className="pdf-section" style={{ pageBreakInside: "avoid", marginBottom: "28px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div className="compare-header-row">
                 <div>
                   <div style={{ fontSize: "9px", fontFamily: "JetBrains Mono", color: "var(--text-dim)", letterSpacing: "0.12em", fontWeight: "bold" }}>
                     POLICY COMPARISON REPORT
@@ -494,7 +497,7 @@ export default function Compare() {
                   </div>
                 </div>
                 
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <div className="compare-header-actions">
                   <button
                     onClick={reset}
                     className="action-btn-hover"
