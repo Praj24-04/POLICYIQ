@@ -5,8 +5,7 @@
 |  _ \ / _ \| |   |_ _/ ___\ \ / /_ _/ _ \ 
 | |_) | | | | |    | | |    \ V / | | | | |
 |  __/| |_| | |___ | | |___  | |  | | |_| |
-|_|    \___/|_____|___|____| |_| |___\__\_\
-      [ HYBRID NEURAL REGULATORY GRAPH & MCDA RECOMMENDER ]
+|_|    \___/|_____|___|____| |_| |___\__\_\[ HYBRID NEURAL REGULATORY GRAPH & MCDA RECOMMENDER...]
 ```
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776ab.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -188,19 +187,6 @@ We ran ablation experiments comparing PolicyIQ against traditional industry base
 
 ---
 
-## ⚡ Full-Stack Feature Highlights
-
-* 🌌 **SaaS Workbench:** Ultra-crisp black-and-lime aesthetic (`#5c9e2e` lime, deep `#0d0f12` onyx, neutral `#e8e8e8`).
-* 🗺️ **Interactive Geographic Density Map:** Real-time Choropleth policy concentration visualizer with instant sector slicing.
-* ⚖️ **6-Dimensional Policy Comparator:** Granular gap analysis across *Enforcement, Scope, Individual Rights, Mandatory Obligations, Sandboxes,* and *Audit Transparency*.
-* 🏛️ **Philosophical Profiler:** Classifies statutory instruments into 5 legal philosophies (*Principles-based, Risk-based, Compliance-driven, Safety-first, Innovation-focused*).
-* 📑 **ReportLab Double-Pass PDF Compiler:** Produces publication-grade, government-standard A4 comparative gap analysis reports with dynamic TOC and headers.
-* 🤖 **Gemini 1.5 Flash Policy Drafter:** Synthesizes jurisdictional drafts using live context, backed by deterministic offline fallback templates.
-* 💬 **IDOR-Hardened Support Chat:** Real-time client support widget with JWT authentication, rate limiting, and zero cross-tenant leak vectors.
-* ⏱️ **APScheduler Automation:** Hourly background syncs with EUR-Lex SPARQL, CISA KEV, and the US Federal Register, plus weekly Sunday 3:00 AM UMAP retraining.
-
----
-
 ## 🛠️ The Geek Stack
 
 * **Core Backend:** Python 3.11+, FastAPI (Asynchronous ASGI), Pydantic v2
@@ -281,8 +267,6 @@ If you are referencing PolicyIQ in academic literature, policy proposals, or res
   pages   = {108--124}
 }
 ```
-
----
 
 <div align="center">
   <b>Built with high-octane passion, mathematical stubbornness, and endless coffee.</b><br>
