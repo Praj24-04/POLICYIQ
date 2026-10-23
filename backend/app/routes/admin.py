@@ -490,6 +490,13 @@ def admin_delete_policy(
         conn.execute("DELETE FROM policies WHERE id = %s", (policy_id,))
         conn.commit()
 
+        # Delete from ChromaDB vector search index
+        try:
+            from app.ml.vector_store import delete_policy_from_chroma
+            delete_policy_from_chroma(policy_id)
+        except Exception as e:
+            print(f"[WARN] Failed to delete policy from ChromaDB: {e}")
+
         log_activity(
             admin["id"], admin["email"], "policy_delete",
             f"Deleted policy: {existing['title']} (id={policy_id})",

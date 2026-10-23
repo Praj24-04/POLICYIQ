@@ -12,15 +12,33 @@ def get_policies(
     search: Optional[str] = None,
     status: Optional[str] = None,
     country: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: Optional[int] = None,
 ):
-    cache_key = f"policies:{sector}:{region}:{search}:{status}:{country}"
+    # Determine if server-side pagination is requested
+    use_pagination = page is not None or limit is not None
+    page_num = max(page or 1, 1)
+    page_size = min(max(limit or 30, 1), 100)  # clamp to 1-100
+
+    cache_key = f"policies:{sector}:{region}:{search}:{status}:{country}:{page_num if use_pagination else 'all'}:{page_size if use_pagination else 'all'}"
     cached = backend_cache.get(cache_key)
     if cached is not None:
         return cached
 
-    res = load_policies(sector=sector, region=region, search=search, status=status, country=country)
-    backend_cache.set(cache_key, res)
-    return res
+    res = load_policies(
+        sector=sector, region=region, search=search, status=status, country=country,
+        page=page_num if use_pagination else None,
+        limit=page_size if use_pagination else None,
+    )
+
+    if use_pagination:
+        # res is a dict with {data, total, page, limit}
+        backend_cache.set(cache_key, res)
+        return res
+    else:
+        # Legacy: return flat array for backwards compatibility
+        backend_cache.set(cache_key, res)
+        return res
 
 @router.get("/sectors")
 def get_sectors():

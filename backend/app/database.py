@@ -201,6 +201,19 @@ def init_db():
         )
     """)
 
+    # ── Support messages (Client chatbot & admin dashboard) ─────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS support_messages (
+            id          SERIAL PRIMARY KEY,
+            user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message     TEXT NOT NULL,
+            sender      TEXT NOT NULL,
+            status      TEXT DEFAULT 'open',
+            created_at  TIMESTAMP DEFAULT NOW()
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_support_messages_user_id ON support_messages(user_id);")
+
 
     # ── Add pgvector columns (graceful if extension not available) ────
     try:
@@ -230,8 +243,18 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_action ON activity_logs(action)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC)")
+
+        # Composite index for the most common filter+sort pattern (Database page)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_policies_sector_year ON policies(sector, year DESC NULLS LAST)")
+
+        # Full-text search index for fast text search queries
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_policies_fts 
+            ON policies USING GIN(to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(content, '')))
+        """)
+
         conn.commit()
-        print("[OK] Database performance indexes verified/created")
+        print("[OK] Database performance indexes verified/created (incl. full-text search)")
     except Exception as ie:
         print(f"[WARN] Performance index creation skipped: {ie}")
         try:

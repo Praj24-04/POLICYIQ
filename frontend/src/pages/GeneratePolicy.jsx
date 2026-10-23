@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Sparkles, FileDown, RotateCcw, AlertTriangle } from "lucide-react";
 import { BASE, clearApiCache } from "../services/api";
+import PartnerLogos from "../components/PartnerBar";
 
 const FALLBACK_COUNTRIES = [
   "India", "United States", "European Union", "Brazil", "China", 
@@ -1071,6 +1072,7 @@ export default function GeneratePolicy() {
           )}
         </div>
       )}
+      <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
     </div>
   );
 }

@@ -15,22 +15,31 @@ from app.ml.embedder import embed_text, cross_encoder
 from app.ml.embedding_store import get_embedding
 
 
+def _clean_tag(tag):
+    """Strip residue brackets, braces, and quotes from individual tag strings."""
+    if not isinstance(tag, str):
+        return str(tag).strip()
+    return tag.strip().strip('{}[]\'"\'\"').strip()
+
+
 def _parse_list(value):
     if value is None:
         return []
     if isinstance(value, list):
-        return value
+        return [_clean_tag(t) for t in value if t]
     if isinstance(value, tuple):
-        return list(value)
+        return [_clean_tag(t) for t in value if t]
     if isinstance(value, str):
         value = value.strip()
         if not value:
             return []
         try:
             parsed = json.loads(value)
-            return parsed if isinstance(parsed, list) else [parsed]
+            if isinstance(parsed, list):
+                return [_clean_tag(t) for t in parsed if t]
+            return [_clean_tag(parsed)]
         except json.JSONDecodeError:
-            return [item.strip() for item in value.split(",") if item.strip()]
+            return [_clean_tag(item) for item in value.split(",") if item.strip()]
     return []
 
 
@@ -180,32 +189,36 @@ def compare_policies_v2(id1: str, id2: str) -> dict:
         logger.warning("Cross-Encoder not loaded in comparator. Adjusting composite formula to 60% semantic + 40% jaccard.")
         cross_encoder_failed = True
 
-    # Part E - Tag gap analysis (Jaccard)
-    tags1 = set(p1["tags"])
-    tags2 = set(p2["tags"])
+    # Part E - Tag gap analysis (Jaccard) — case-insensitive matching
+    # Build a lowercase lookup mapping for accurate overlap detection
+    tags1_lower_map = {t.lower().strip(): t for t in p1["tags"] if t}
+    tags2_lower_map = {t.lower().strip(): t for t in p2["tags"] if t}
 
-    shared_tags = list(tags1.intersection(tags2))
-    raw_only_p1 = tags1 - tags2
-    raw_only_p2 = tags2 - tags1
+    tags1_lower_set = set(tags1_lower_map.keys())
+    tags2_lower_set = set(tags2_lower_map.keys())
+
+    shared_lower = tags1_lower_set.intersection(tags2_lower_set)
+    shared_tags = [tags1_lower_map[t] for t in shared_lower]  # preserve original casing from p1
+
+    raw_only_p1_lower = tags1_lower_set - tags2_lower_set
+    raw_only_p2_lower = tags2_lower_set - tags1_lower_set
 
     # Filter out tags that are actually mentioned in the other policy's content or title (case-insensitive)
     content1_lower = ((p1.get("content") or "") + " " + p1.get("title", "")).lower()
     content2_lower = ((p2.get("content") or "") + " " + p2.get("title", "")).lower()
 
     only_p1 = []
-    for t in raw_only_p1:
-        t_lower = t.lower()
-        if t_lower not in content2_lower:
-            only_p1.append(t)
+    for t_low in raw_only_p1_lower:
+        if t_low not in content2_lower:
+            only_p1.append(tags1_lower_map[t_low])
 
     only_p2 = []
-    for t in raw_only_p2:
-        t_lower = t.lower()
-        if t_lower not in content1_lower:
-            only_p2.append(t)
+    for t_low in raw_only_p2_lower:
+        if t_low not in content1_lower:
+            only_p2.append(tags2_lower_map[t_low])
 
-    union_tags = tags1.union(tags2)
-    jaccard = len(shared_tags) / len(union_tags) if union_tags else 0.0
+    union_count = len(tags1_lower_set.union(tags2_lower_set))
+    jaccard = len(shared_lower) / union_count if union_count else 0.0
 
     # Part F - Composite similarity score
     if cross_encoder_failed:

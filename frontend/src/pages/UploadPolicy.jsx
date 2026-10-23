@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Upload, FileText, Sparkles, CheckCircle2, Download } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PartnerLogos from "../components/PartnerBar";
 import { getToken, BASE, clearApiCache } from "../services/api";
 import { jsPDF } from "jspdf";
+import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 
 
 
@@ -868,60 +870,125 @@ export default function UploadPolicy() {
                       }} />
                     </div>
 
-                    {/* Why This Country */}
-                    <div style={{
-                      background: "var(--bg-hover)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "6px",
-                      padding: "12px 16px",
-                      marginBottom: "16px"
-                    }}>
-                      <div style={{
-                        fontSize: "10px",
-                        color: "var(--text-dim)",
-                        fontFamily: "JetBrains Mono",
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        marginBottom: "6px"
-                      }}>
-                        Why This Country
+                    {/* Three-Column Content Grid */}
+                    <div 
+                      className="recommender-details-grid-custom"
+                      style={{ gap: "20px" }}
+                    >
+                      {/* COLUMN 1 — "WHY THIS COUNTRY" */}
+                      <div>
+                        <div style={{
+                          fontSize: "10px",
+                          color: "var(--text-dim)",
+                          fontFamily: "JetBrains Mono",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          marginBottom: "8px"
+                        }}>
+                          Why This Country
+                        </div>
+                        <div style={{
+                          background: "var(--bg-hover)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "6px",
+                          padding: "12px 16px",
+                        }}>
+                          <p style={{ fontSize: "13px", color: "var(--text-main)", lineHeight: 1.65, margin: 0, fontFamily: "DM Sans" }}>
+                            {rec.reasoning}
+                          </p>
+                        </div>
                       </div>
-                      <p style={{ fontSize: "13px", color: "var(--text-main)", lineHeight: 1.65, margin: 0, fontFamily: "DM Sans" }}>
-                        {rec.reasoning}
-                      </p>
-                    </div>
 
-                    {/* Expected Benefits */}
-                    <div>
-                      <div style={{
-                        fontSize: "10px",
-                        color: "var(--text-dim)",
-                        fontFamily: "JetBrains Mono",
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        marginBottom: "10px"
-                      }}>
-                        Expected Regulatory Benefits
+                      {/* COLUMN 2 — "EXPECTED BENEFITS" */}
+                      <div>
+                        <div style={{
+                          fontSize: "10px",
+                          color: "var(--text-dim)",
+                          fontFamily: "JetBrains Mono",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          marginBottom: "8px"
+                        }}>
+                          Expected Regulatory Benefits
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {rec.expected_benefits.map((b, j) => (
+                            <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                              <CheckCircle2
+                                size={14}
+                                color="#5c9e2e"
+                                style={{ flexShrink: 0, marginTop: "2px" }}
+                              />
+                              <span style={{
+                                fontSize: "12px",
+                                color: "var(--text-muted)",
+                                lineHeight: 1.5,
+                                fontFamily: "DM Sans"
+                              }}>
+                                {b}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="upload-benefits-grid">
-                        {rec.expected_benefits.map((b, j) => (
-                          <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                            <CheckCircle2
-                              size={14}
-                              color="#5c9e2e"
-                              style={{ flexShrink: 0, marginTop: "2px" }}
-                            />
-                            <span style={{
-                              fontSize: "12px",
-                              color: "var(--text-muted)",
-                              lineHeight: 1.5,
-                              fontFamily: "DM Sans"
-                            }}>
-                              {b}
-                            </span>
+
+                      {/* COLUMN 3 — RADAR CHART */}
+                      {rec.score_breakdown && (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                          <div style={{ width: "200px", height: "180px" }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <RadarChart cx="50%" cy="50%" outerRadius="55%" data={[
+                                { subject: "Gap Severity", score: Math.round((rec.score_breakdown.sector_gap || 0) / 0.35 * 100) },
+                                { subject: "Infrastructure", score: Math.round((rec.score_breakdown.regulatory_maturity || 0) / 0.25 * 100) },
+                                { subject: "Intent Match", score: Math.round((rec.score_breakdown.semantic_need || 0) / 0.20 * 100) },
+                                { subject: "Peer Adoption", score: Math.round((rec.score_breakdown.regional_pressure || 0) / 0.12 * 100) },
+                                { subject: "Development", score: Math.round((rec.score_breakdown.economic_tier || 0) / 0.08 * 100) }
+                              ]}>
+                                <PolarGrid stroke="var(--border)" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--text-muted)", fontSize: 10, fontFamily: "JetBrains Mono" }} />
+                                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+                                <Radar 
+                                  name="Need Index" 
+                                  dataKey="score" 
+                                  stroke="#5c9e2e" 
+                                  fill="#5c9e2e" 
+                                  fillOpacity={0.08} 
+                                  strokeWidth={1.5}
+                                />
+                              </RadarChart>
+                            </ResponsiveContainer>
                           </div>
-                        ))}
-                      </div>
+
+                          {/* Factor values mini grid */}
+                          <div className="score-grid" style={{
+                            textAlign: "center",
+                            marginTop: "8px",
+                            paddingTop: "8px",
+                            borderTop: "1px solid var(--border)",
+                            width: "100%",
+                            display: "grid",
+                            gridTemplateColumns: "repeat(5, 1fr)",
+                            gap: "4px"
+                          }}>
+                            {[
+                              { label: "Gap", val: rec.score_breakdown.sector_gap },
+                              { label: "Inf", val: rec.score_breakdown.regulatory_maturity },
+                              { label: "Int", val: rec.score_breakdown.semantic_need },
+                              { label: "Pee", val: rec.score_breakdown.regional_pressure },
+                              { label: "Dev", val: rec.score_breakdown.economic_tier }
+                            ].map(itm => (
+                              <div key={itm.label} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "JetBrains Mono" }}>
+                                  {itm.label}
+                                </span>
+                                <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-main)", fontWeight: 600 }}>
+                                  {(itm.val || 0).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -929,6 +996,7 @@ export default function UploadPolicy() {
             </div>
           </div>
         )}
+        <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
       </div>
     </div>
   );

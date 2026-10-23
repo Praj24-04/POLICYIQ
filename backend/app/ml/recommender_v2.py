@@ -98,22 +98,31 @@ def load_country_needs_from_db() -> dict:
 COUNTRY_NEED_DESCRIPTIONS = load_country_needs_from_db()
 
 
+def _clean_tag(tag):
+    """Strip residue brackets, braces, and quotes from individual tag strings."""
+    if not isinstance(tag, str):
+        return str(tag).strip()
+    return tag.strip().strip('{}[]\'"\'\"').strip()
+
+
 def _parse_list(value):
     if value is None:
         return []
     if isinstance(value, list):
-        return value
+        return [_clean_tag(t) for t in value if t]
     if isinstance(value, tuple):
-        return list(value)
+        return [_clean_tag(t) for t in value if t]
     if isinstance(value, str):
         value = value.strip()
         if not value:
             return []
         try:
             parsed = json.loads(value)
-            return parsed if isinstance(parsed, list) else [parsed]
+            if isinstance(parsed, list):
+                return [_clean_tag(t) for t in parsed if t]
+            return [_clean_tag(parsed)]
         except json.JSONDecodeError:
-            return [item.strip() for item in value.split(",") if item.strip()]
+            return [_clean_tag(item) for item in value.split(",") if item.strip()]
     return []
 
 
@@ -1369,16 +1378,42 @@ def get_recommendations_for_text(text: str, tags: list, title: str, top_n: int =
                 finally:
                     conn.close()
                     
+                # Build a temporary policy dict for score_country
+                temp_policy_for_scoring = {
+                    "id": "uploaded",
+                    "title": detected_title,
+                    "content": text,
+                    "tags": detected_tags,
+                    "sector": detected_sector,
+                    "country": "Unknown",
+                    "year": None,
+                }
+                primary_sec, secondary_sec = _detect_sectors(temp_policy_for_scoring)
+                temp_policy_for_scoring["primary_sector"] = primary_sec
+                temp_policy_for_scoring["secondary_sector"] = secondary_sec
+
+                # Compute full 5-factor breakdown using score_country
+                scored_result = score_country(country_name, temp_policy_for_scoring, similar_policies)
+                if scored_result:
+                    full_breakdown = scored_result["score_breakdown"]
+                    computed_cosine = scored_result.get("raw_cosine_sim", 0.9)
+                else:
+                    # Fallback if score_country returns None (e.g. same country)
+                    full_breakdown = {
+                        "sector_gap": 0.3 if not already_has else 0.1,
+                        "regulatory_maturity": 0.2 if profile.get("regulatory_maturity") == "developing" else 0.1,
+                        "semantic_need": round(float(r.get("need_score", 0.5)) * 0.4, 3),
+                        "regional_pressure": 0.0,
+                        "economic_tier": 0.05
+                    }
+                    computed_cosine = 0.9
+
                 formatted_recs.append({
                     "country": country_name,
                     "region": profile.get("region", "Global"),
                     "need_score": round(float(r.get("need_score", 0.5)), 3),
-                    "score_breakdown": {
-                        "sector_gap": 0.3 if not already_has else 0.1,
-                        "regulatory_maturity": 0.2 if profile.get("regulatory_maturity") == "developing" else 0.1,
-                        "semantic_need": round(float(r.get("need_score", 0.5)) * 0.4, 3)
-                    },
-                    "raw_cosine_sim": 0.900,
+                    "score_breakdown": full_breakdown,
+                    "raw_cosine_sim": round(computed_cosine, 3),
                     "regulatory_maturity": profile.get("regulatory_maturity", "developing"),
                     "already_has_sector": already_has,
                     "reasoning": r.get("reasoning", ""),

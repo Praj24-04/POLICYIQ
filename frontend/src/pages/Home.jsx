@@ -91,14 +91,103 @@ const FAQItem = ({ question, answer }) => {
   );
 };
 
+const DEFAULT_POLICIES = [
+  {
+    id: "default-1",
+    title: "Drafting harmonized rules on Artificial Intelligence (Artificial Intelligence Act).",
+    region: "EU",
+    country: "European Union",
+    sector: "AI Governance",
+    category: "Regulation",
+    status: "Active",
+    tags: ["AI", "Act", "EU"]
+  },
+  {
+    id: "default-2",
+    title: "Enhancing cybersecurity posture of critical infrastructure and federal networks.",
+    region: "US",
+    country: "United States",
+    sector: "Cybersecurity",
+    category: "Directive",
+    status: "Active",
+    tags: ["Cyber", "NIST", "US"]
+  },
+  {
+    id: "default-3",
+    title: "General Data Protection Regulation standards for cross-border data transfers.",
+    region: "EU",
+    country: "European Union",
+    sector: "Data Privacy",
+    category: "Regulation",
+    status: "Active",
+    tags: ["GDPR", "Privacy", "EU"]
+  },
+  {
+    id: "default-4",
+    title: "Guidelines for responsible development and deployment of Generative AI systems.",
+    region: "US",
+    country: "United States",
+    sector: "AI Governance",
+    category: "Framework",
+    status: "Active",
+    tags: ["GenAI", "AI", "Ethics"]
+  },
+  {
+    id: "default-5",
+    title: "National Cybersecurity Strategy for protecting maritime transportation systems.",
+    region: "US",
+    country: "United States",
+    sector: "Cybersecurity",
+    category: "Strategy",
+    status: "Active",
+    tags: ["Cyber", "Maritime", "US"]
+  },
+  {
+    id: "default-6",
+    title: "Digital Personal Data Protection Act implementation for enterprise cloud systems.",
+    region: "IN",
+    country: "India",
+    sector: "Data Privacy",
+    category: "Act",
+    status: "Active",
+    tags: ["DPDP", "Privacy", "India"]
+  }
+];
+
 export default function Home() {
   const nav = useNavigate();
-  const [policies, setPolicies] = useState([]);
+  const [policies, setPolicies] = useState(DEFAULT_POLICIES);
 
   useEffect(() => {
-    fetchPolicies({}).then(data => {
-      setPolicies(data || []);
-    });
+    let active = true;
+    let retryCount = 0;
+
+    const load = () => {
+      fetchPolicies({})
+        .then(data => {
+          if (!active) return;
+          if (data && data.length > 0) {
+            setPolicies(data);
+          } else {
+            // If API returned null/empty (e.g. timeout during server boot), retry
+            if (retryCount < 12) {
+              retryCount++;
+              setTimeout(load, 4000);
+            }
+          }
+        })
+        .catch(() => {
+          if (active && retryCount < 12) {
+            retryCount++;
+            setTimeout(load, 4000);
+          }
+        });
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const containerVariants = {
@@ -441,7 +530,7 @@ export default function Home() {
               </div>
 
               {/* Column 2 - Down */}
-              <div className="animate-marquee-v-down" style={{ gap: 24, padding: "20px 0" }}>
+              <div className="animate-marquee-v-down marquee-col-hide-mobile" style={{ gap: 24, padding: "20px 0" }}>
                 {col2.map((p, i) => (
                   <div key={`c2-${i}`} style={{ pointerEvents: "none" }}>
                     <PolicyTestimonialCard policy={p} />
@@ -450,7 +539,7 @@ export default function Home() {
               </div>
 
               {/* Column 3 - Up */}
-              <div className="animate-marquee-v-up" style={{ gap: 24, padding: "20px 0" }}>
+              <div className="animate-marquee-v-up marquee-col-hide-mobile" style={{ gap: 24, padding: "20px 0" }}>
                 {col3.map((p, i) => (
                   <div key={`c3-${i}`} style={{ pointerEvents: "none" }}>
                     <PolicyTestimonialCard policy={p} />
@@ -566,7 +655,7 @@ export default function Home() {
             <div style={{ fontWeight: 800, fontSize: 16, color: "#FFFFFF", letterSpacing: "-0.5px" }}>PolicyIQ</div>
           </div>
 
-          <PartnerLogos className="partner-logos-footer" showDivider={false} forceDark={true} />
+          <PartnerLogos className="partner-logos-footer" showDivider={false} forceDark={true} label="powered by" />
 
           <div style={{ color: "#57534E", fontSize: 12, fontFamily: "JetBrains Mono" }}>
             © 2026 PolicyIQ. built globally.

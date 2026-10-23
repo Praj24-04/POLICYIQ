@@ -14,6 +14,7 @@ import GeneratePolicy from "./pages/GeneratePolicy";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import SupportChat from "./components/SupportChat/SupportChat";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -93,6 +94,7 @@ export default function App() {
             </Routes>
           </main>
         </div>
+        <SupportChat user={user} />
       </div>
     </BrowserRouter>
   );

@@ -274,13 +274,13 @@ html {
 .animate-marquee-v-up {
   display: flex;
   flex-direction: column;
-  animation: marquee-vertical-up 1500s linear infinite;
+  animation: marquee-vertical-up 20s linear infinite;
 }
 
 .animate-marquee-v-down {
   display: flex;
   flex-direction: column;
-  animation: marquee-vertical-down 1500s linear infinite;
+  animation: marquee-vertical-down 20s linear infinite;
 }
 
 .animate-marquee-h:hover,
@@ -607,6 +607,16 @@ html {
 }
 .spin-icon {
   animation: spin 1.2s linear infinite;
+}
+
+@keyframes shimmerPipeline {
+  0%, 100% { opacity: 0; transform: translateX(-100%); }
+  50% { opacity: 1; transform: translateX(100%); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(92, 158, 46, 0.6), 0 0 16px rgba(92, 158, 46, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(163, 230, 53, 0.8), 0 0 24px rgba(163, 230, 53, 0.4); }
 }
 
 @keyframes fadeIn {
@@ -1068,7 +1078,12 @@ html {
   }
 
   .home-marquee-vertical {
-    display: none;
+    display: flex !important;
+    height: 480px !important;
+    justify-content: center;
+  }
+  .marquee-col-hide-mobile {
+    display: none !important;
   }
 
   .home-footer-grid {
@@ -1484,15 +1499,18 @@ html {
    COMPONENTS: Partner Logos Footer Placement
    ========================================================================= */
 .partner-logos-footer {
-  display: none;
+  display: none !important;
 }
 
 @media (max-width: 1150px) {
   .partner-logos-footer {
-    display: flex;
+    display: flex !important;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 8px;
+    width: 100%;
+    padding: 16px 0;
     margin: 16px 0;
   }
 }
@@ -1638,3 +1656,103 @@ html {
     margin-top: 6px;
   }
 }
+
+/* =========================================================================
+   COMPONENTS: Responsive Layout Enhancements
+   ========================================================================= */
+
+.compare-philosophy-layout {
+  display: flex;
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .compare-philosophy-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .compare-philosophy-divider {
+    width: 100% !important;
+    height: 1px !important;
+  }
+}
+
+.weights-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+@media (max-width: 600px) {
+  .weights-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .weights-actions-row button {
+    width: 100% !important;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .feedback-container {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100%;
+  }
+  .feedback-buttons-wrapper {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .feedback-buttons-wrapper button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* =========================================================================
+   COMPONENTS: Support Chat Floating Widget
+   ========================================================================= */
+
+.support-chat-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.support-chat-panel {
+  width: 360px;
+  max-height: 520px;
+  height: 80vh;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .support-chat-container {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+  }
+  .support-chat-panel {
+    width: 100%;
+    max-height: calc(100vh - 90px);
+    height: 75vh;
+  }
+}
+

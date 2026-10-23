@@ -1,41 +1,59 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { fetchPolicies, fetchSectors, fetchRegions } from "../services/api";
 import PolicyCard from "../components/PolicyCard";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { Search, Filter, X, Globe2, ExternalLink, MapPin, ChevronDown, ArrowUp } from "lucide-react";
+import PartnerLogos from "../components/PartnerBar";
+import { Search, Filter, X, Globe2, ExternalLink, MapPin, ChevronDown, ChevronLeft, ChevronRight, ArrowUp } from "lucide-react";
 
 const PAGE_SIZE = 30;
 
 export default function Policies() {
   const [policies, setPolicies] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [sectors,  setSectors]  = useState([]);
   const [regions,  setRegions]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [search,   setSearch]   = useState("");
   const [sector,   setSector]   = useState("");
   const [region,   setRegion]   = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Autocomplete states
   const [allTitles, setAllTitles] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const load = () => {
+  // Debounce timer for search
+  const searchTimer = useRef(null);
+
+  const load = useCallback((page = 1) => {
     setLoading(true);
-    fetchPolicies({ search, sector, region }).then(d => {
-      setPolicies(d || []);
+    fetchPolicies({ search, sector, region, page, limit: PAGE_SIZE }).then(d => {
+      if (d && d.data) {
+        // Server-side paginated response
+        setPolicies(d.data);
+        setTotalCount(d.total || 0);
+        setCurrentPage(d.page || 1);
+      } else if (Array.isArray(d)) {
+        // Legacy fallback (flat array)
+        setPolicies(d);
+        setTotalCount(d.length);
+      } else {
+        setPolicies([]);
+        setTotalCount(0);
+      }
       setLoading(false);
     });
-  };
+  }, [search, sector, region]);
 
   useEffect(() => {
     fetchSectors().then(d => setSectors(d || []));
     fetchRegions().then(d => setRegions(d || []));
-    // Fetch all policies once to extract titles for autocomplete suggestions
-    fetchPolicies({}).then(data => {
-      if (data) {
-        setAllTitles(data.map(p => ({ title: p.title, id: p.id, sector: p.sector, country: p.country })));
+    // Fetch first page for autocomplete suggestions
+    fetchPolicies({ page: 1, limit: 100 }).then(data => {
+      const items = data?.data || (Array.isArray(data) ? data : []);
+      if (items.length > 0) {
+        setAllTitles(items.map(p => ({ title: p.title, id: p.id, sector: p.sector, country: p.country })));
       }
     });
   }, []);
@@ -54,9 +72,26 @@ export default function Policies() {
     setSuggestions(filtered);
   }, [search, allTitles]);
 
-  useEffect(() => { load(); setVisibleCount(PAGE_SIZE); }, [search, sector, region]);
+  // Debounce search: wait 400ms after typing stops before fetching
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setCurrentPage(1);
+      load(1);
+    }, 400);
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [search, sector, region, load]);
 
-  const clearFilters = () => { setSearch(""); setSector(""); setRegion(""); setVisibleCount(PAGE_SIZE); };
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const goToPage = (page) => {
+    const p = Math.max(1, Math.min(page, totalPages));
+    setCurrentPage(p);
+    load(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const clearFilters = () => { setSearch(""); setSector(""); setRegion(""); setCurrentPage(1); };
   const hasFilters = search || sector || region;
 
   return (
@@ -129,11 +164,9 @@ export default function Policies() {
               alignItems: "center",
               flexWrap: "wrap"
             }}>
-              <span>ACTIVE <strong style={{ color: "var(--text-main)", marginLeft: 4 }}>{policies.filter(p => p.year >= 2023).length || 240}</strong></span>
+              <span>PAGE <strong style={{ color: "var(--text-main)", marginLeft: 4 }}>{currentPage}</strong> of <strong style={{ color: "var(--text-main)" }}>{totalPages}</strong></span>
               <span style={{ color: "var(--border)" }}>|</span>
-              <span>UNDER REVIEW <strong style={{ color: "var(--text-main)", marginLeft: 4 }}>{policies.filter(p => p.year < 2023).length || 502}</strong></span>
-              <span style={{ color: "var(--border)" }}>|</span>
-              <span>INDEXED <strong style={{ color: "var(--bg-base)", background: "var(--text-main)", padding: "2px 6px", borderRadius: "3px", marginLeft: 4, fontWeight: 700 }}>{policies.length}</strong></span>
+              <span>INDEXED <strong style={{ color: "var(--bg-base)", background: "var(--text-main)", padding: "2px 6px", borderRadius: "3px", marginLeft: 4, fontWeight: 700 }}>{totalCount}</strong></span>
             </div>
           </div>
 
@@ -501,89 +534,121 @@ export default function Policies() {
                     color: "var(--text-dim)",
                     letterSpacing: "0.05em"
                   }}>
-                    Showing <strong style={{ color: "var(--text-main)" }}>{Math.min(visibleCount, policies.length)}</strong> of <strong style={{ color: "var(--text-main)" }}>{policies.length}</strong> policies
+                    Showing <strong style={{ color: "var(--text-main)" }}>{policies.length}</strong> of <strong style={{ color: "var(--text-main)" }}>{totalCount}</strong> policies
+                    {totalPages > 1 && <> · Page <strong style={{ color: "var(--text-main)" }}>{currentPage}</strong> of <strong style={{ color: "var(--text-main)" }}>{totalPages}</strong></>}
                   </span>
-                  {visibleCount > PAGE_SIZE && (
+                </div>
+
+                <div className="policies-grid-custom">
+                  {policies.map((p, i) => (
+                    <PolicyCard key={p.id} policy={p} delay={(i % 6) + 1} />
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "32px 0 16px",
+                    flexWrap: "wrap"
+                  }}>
                     <button
-                      onClick={() => { setVisibleCount(PAGE_SIZE); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage <= 1}
                       style={{
-                        display: "flex",
+                        display: "inline-flex",
                         alignItems: "center",
                         gap: "4px",
                         background: "var(--bg-card)",
                         border: "1px solid var(--border)",
                         borderRadius: "6px",
-                        padding: "4px 10px",
-                        fontSize: "11px",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        color: "var(--text-muted)",
-                        cursor: "pointer",
+                        padding: "8px 14px",
+                        fontSize: "13px",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontWeight: 500,
+                        color: currentPage <= 1 ? "var(--text-dim)" : "var(--text-main)",
+                        cursor: currentPage <= 1 ? "not-allowed" : "pointer",
+                        opacity: currentPage <= 1 ? 0.5 : 1,
                         transition: "all 0.15s ease"
                       }}
                     >
-                      <ArrowUp size={11} /> Back to top
+                      <ChevronLeft size={14} /> Previous
                     </button>
-                  )}
-                </div>
 
-                <div className="policies-grid-custom">
-                  {policies.slice(0, visibleCount).map((p, i) => (
-                    <PolicyCard key={p.id} policy={p} delay={i < PAGE_SIZE ? (i % 6) + 1 : 0} />
-                  ))}
-                </div>
+                    {/* Page number buttons */}
+                    {(() => {
+                      const pages = [];
+                      const maxVisible = 7;
+                      let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                      let end = Math.min(totalPages, start + maxVisible - 1);
+                      if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
 
-                {/* Load More Button */}
-                {visibleCount < policies.length && (
-                  <div style={{ textAlign: "center", padding: "32px 0 16px" }}>
+                      if (start > 1) {
+                        pages.push(
+                          <button key={1} onClick={() => goToPage(1)} style={{
+                            width: 36, height: 36, borderRadius: "6px", border: "1px solid var(--border)",
+                            background: "var(--bg-card)", color: "var(--text-muted)", cursor: "pointer",
+                            fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+                            transition: "all 0.15s ease"
+                          }}>1</button>
+                        );
+                        if (start > 2) pages.push(<span key="s1" style={{ color: "var(--text-dim)", fontSize: "12px" }}>…</span>);
+                      }
+
+                      for (let i = start; i <= end; i++) {
+                        const isActive = i === currentPage;
+                        pages.push(
+                          <button key={i} onClick={() => goToPage(i)} style={{
+                            width: 36, height: 36, borderRadius: "6px",
+                            border: isActive ? "1px solid var(--text-main)" : "1px solid var(--border)",
+                            background: isActive ? "var(--text-main)" : "var(--bg-card)",
+                            color: isActive ? "var(--bg-base)" : "var(--text-muted)",
+                            cursor: "pointer", fontSize: "13px", fontFamily: "'JetBrains Mono', monospace",
+                            fontWeight: isActive ? 700 : 500, transition: "all 0.15s ease"
+                          }}>{i}</button>
+                        );
+                      }
+
+                      if (end < totalPages) {
+                        if (end < totalPages - 1) pages.push(<span key="s2" style={{ color: "var(--text-dim)", fontSize: "12px" }}>…</span>);
+                        pages.push(
+                          <button key={totalPages} onClick={() => goToPage(totalPages)} style={{
+                            width: 36, height: 36, borderRadius: "6px", border: "1px solid var(--border)",
+                            background: "var(--bg-card)", color: "var(--text-muted)", cursor: "pointer",
+                            fontSize: "13px", fontFamily: "'JetBrains Mono', monospace", fontWeight: 500,
+                            transition: "all 0.15s ease"
+                          }}>{totalPages}</button>
+                        );
+                      }
+
+                      return pages;
+                    })()}
+
                     <button
-                      onClick={() => setVisibleCount(prev => Math.min(prev + PAGE_SIZE, policies.length))}
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "8px",
+                        gap: "4px",
                         background: "var(--bg-card)",
                         border: "1px solid var(--border)",
-                        borderRadius: "8px",
-                        padding: "12px 28px",
-                        fontSize: "14px",
+                        borderRadius: "6px",
+                        padding: "8px 14px",
+                        fontSize: "13px",
                         fontFamily: "'DM Sans', sans-serif",
-                        fontWeight: 600,
-                        color: "var(--text-main)",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+                        fontWeight: 500,
+                        color: currentPage >= totalPages ? "var(--text-dim)" : "var(--text-main)",
+                        cursor: currentPage >= totalPages ? "not-allowed" : "pointer",
+                        opacity: currentPage >= totalPages ? 0.5 : 1,
+                        transition: "all 0.15s ease"
                       }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--cyan)'; e.currentTarget.style.background = 'var(--bg-hover)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-card)'; }}
                     >
-                      <ChevronDown size={16} />
-                      Load more
-                      <span style={{
-                        fontSize: "11px",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        color: "var(--text-dim)",
-                        background: "var(--bg-hover)",
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                        marginLeft: "4px"
-                      }}>
-                        {Math.min(PAGE_SIZE, policies.length - visibleCount)} remaining
-                      </span>
+                      Next <ChevronRight size={14} />
                     </button>
-                  </div>
-                )}
-
-                {/* All loaded indicator */}
-                {visibleCount >= policies.length && policies.length > PAGE_SIZE && (
-                  <div style={{
-                    textAlign: "center",
-                    padding: "24px 0 8px",
-                    fontSize: "12px",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    color: "var(--text-dim)",
-                    letterSpacing: "0.05em"
-                  }}>
-                    ✓ All {policies.length} policies loaded
                   </div>
                 )}
               </>
@@ -591,6 +656,7 @@ export default function Policies() {
           </div>
         )}
 
+        <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
       </div>
     </div>
   );

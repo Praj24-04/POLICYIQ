@@ -231,16 +231,28 @@ EURLEX_SEARCH_TERMS = [
     ("electronic communications", "Data Privacy"),
     ("financial technology", "Financial Regulation"),
     ("crypto-assets", "Financial Regulation"),
+    ("payment services", "Financial Regulation"),
+    ("anti-money laundering", "Financial Regulation"),
     ("sustainability reporting", "ESG Policies"),
     ("environmental taxonomy", "ESG Policies"),
+    ("climate risk", "ESG Policies"),
+    ("carbon emission", "ESG Policies"),
     ("medical devices", "Healthcare AI"),
     ("health data", "Healthcare AI"),
+    ("clinical trials", "Healthcare AI"),
+    ("pharmaceutical", "Healthcare AI"),
     ("robotics", "IoT and Robotics"),
     ("internet of things", "IoT and Robotics"),
     ("machinery safety", "IoT and Robotics"),
     ("product safety", "IoT and Robotics"),
+    ("autonomous vehicle", "IoT and Robotics"),
+    ("drone regulation", "IoT and Robotics"),
     ("workplace safety", "POSH Policies"),
     ("equal treatment", "POSH Policies"),
+    ("whistleblower", "POSH Policies"),
+    ("securities regulation", "Financial Regulation"),
+    ("digital identity", "Data Privacy"),
+    ("network information security", "Cybersecurity"),
 ]
 
 
@@ -291,7 +303,7 @@ def fetch_from_eurlex() -> list:
     seen_celex = set()
 
     for keyword, default_sector in EURLEX_SEARCH_TERMS:
-        results = _sparql_search(keyword, limit=15)
+        results = _sparql_search(keyword, limit=30)
         
         for doc in results:
             celex = doc["celex"]
@@ -396,7 +408,7 @@ def fetch_from_cisa() -> list:
             vulnerabilities,
             key=lambda v: v.get("dateAdded", ""),
             reverse=True
-        )[:50]
+        )[:100]
 
         vendor_groups = {}
         for v in recent:
@@ -467,35 +479,56 @@ def fetch_from_cisa() -> list:
 FEDERAL_REGISTER_SEARCHES = [
     # (search_term, sector, pages_to_fetch, country_hint)
     # ── US Generic (domestic policies) ──
-    ("artificial intelligence policy", "AI Governance", 2, None),
-    ("artificial intelligence executive order", "AI Governance", 1, None),
-    ("cybersecurity framework", "Cybersecurity", 2, None),
-    ("cybersecurity executive order", "Cybersecurity", 1, None),
-    ("data privacy regulation", "Data Privacy", 2, None),
-    ("consumer data protection", "Data Privacy", 1, None),
+    ("artificial intelligence policy", "AI Governance", 3, None),
+    ("artificial intelligence executive order", "AI Governance", 2, None),
+    ("machine learning regulation", "AI Governance", 1, None),
+    ("algorithmic accountability", "AI Governance", 1, None),
+    ("cybersecurity framework", "Cybersecurity", 3, None),
+    ("cybersecurity executive order", "Cybersecurity", 2, None),
+    ("critical infrastructure protection", "Cybersecurity", 2, None),
+    ("information security standards", "Cybersecurity", 1, None),
+    ("data privacy regulation", "Data Privacy", 3, None),
+    ("consumer data protection", "Data Privacy", 2, None),
     ("biometric privacy", "Data Privacy", 1, None),
-    ("healthcare AI regulation", "Healthcare AI", 1, None),
-    ("medical device software", "Healthcare AI", 1, None),
-    ("financial technology regulation", "Financial Regulation", 1, None),
-    ("cryptocurrency regulation", "Financial Regulation", 1, None),
-    ("anti-money laundering", "Financial Regulation", 1, None),
-    ("IoT security", "IoT and Robotics", 1, None),
-    ("autonomous vehicle regulation", "IoT and Robotics", 1, None),
-    ("drone regulation", "IoT and Robotics", 1, None),
-    ("ESG disclosure", "ESG Policies", 1, None),
-    ("climate risk financial", "ESG Policies", 1, None),
-    ("sustainability reporting", "ESG Policies", 1, None),
-    ("workplace harassment", "POSH Policies", 1, None),
-    ("equal employment opportunity", "POSH Policies", 1, None),
-    ("whistleblower protection", "POSH Policies", 1, None),
+    ("surveillance technology regulation", "Data Privacy", 1, None),
+    ("personal data breach notification", "Data Privacy", 1, None),
+    ("healthcare AI regulation", "Healthcare AI", 2, None),
+    ("medical device software", "Healthcare AI", 2, None),
+    ("clinical trial diversity", "Healthcare AI", 1, None),
+    ("telemedicine regulation", "Healthcare AI", 1, None),
+    ("electronic health records", "Healthcare AI", 1, None),
+    ("financial technology regulation", "Financial Regulation", 2, None),
+    ("cryptocurrency regulation", "Financial Regulation", 2, None),
+    ("anti-money laundering", "Financial Regulation", 2, None),
+    ("securities exchange commission", "Financial Regulation", 1, None),
+    ("digital asset regulation", "Financial Regulation", 1, None),
+    ("stablecoin regulation", "Financial Regulation", 1, None),
+    ("open banking regulation", "Financial Regulation", 1, None),
+    ("IoT security", "IoT and Robotics", 2, None),
+    ("autonomous vehicle regulation", "IoT and Robotics", 2, None),
+    ("drone regulation", "IoT and Robotics", 2, None),
+    ("connected device security", "IoT and Robotics", 1, None),
+    ("robotics safety standards", "IoT and Robotics", 1, None),
+    ("ESG disclosure", "ESG Policies", 2, None),
+    ("climate risk financial", "ESG Policies", 2, None),
+    ("sustainability reporting", "ESG Policies", 2, None),
+    ("carbon emission regulation", "ESG Policies", 1, None),
+    ("environmental compliance", "ESG Policies", 1, None),
+    ("renewable energy regulation", "ESG Policies", 1, None),
+    ("workplace harassment", "POSH Policies", 2, None),
+    ("equal employment opportunity", "POSH Policies", 2, None),
+    ("whistleblower protection", "POSH Policies", 2, None),
+    ("labor rights digital", "POSH Policies", 1, None),
+    ("occupational safety health", "POSH Policies", 1, None),
     # ── India ──
-    ("India data protection regulation", "Data Privacy", 1, "India"),
+    ("India data protection regulation", "Data Privacy", 2, "India"),
     ("India cybersecurity policy", "Cybersecurity", 1, "India"),
     ("India artificial intelligence", "AI Governance", 1, "India"),
     ("India digital regulation trade", "AI Governance", 1, "India"),
+    ("India fintech regulation", "Financial Regulation", 1, "India"),
     # ── China ──
-    ("China cybersecurity law regulation", "Cybersecurity", 1, "China"),
-    ("China data privacy regulation", "Data Privacy", 1, "China"),
+    ("China cybersecurity law regulation", "Cybersecurity", 2, "China"),
+    ("China data privacy regulation", "Data Privacy", 2, "China"),
     ("China artificial intelligence regulation", "AI Governance", 1, "China"),
     ("China financial technology regulation", "Financial Regulation", 1, "China"),
     # ── Brazil ──
@@ -508,7 +541,7 @@ FEDERAL_REGISTER_SEARCHES = [
     ("Japan artificial intelligence", "AI Governance", 1, "Japan"),
     ("Japan robotics regulation", "IoT and Robotics", 1, "Japan"),
     # ── United Kingdom ──
-    ("United Kingdom data protection GDPR", "Data Privacy", 1, "United Kingdom"),
+    ("United Kingdom data protection GDPR", "Data Privacy", 2, "United Kingdom"),
     ("United Kingdom cybersecurity strategy", "Cybersecurity", 1, "United Kingdom"),
     ("United Kingdom AI regulation", "AI Governance", 1, "United Kingdom"),
     ("United Kingdom financial conduct", "Financial Regulation", 1, "United Kingdom"),
@@ -572,7 +605,7 @@ COUNTRY_REGIONS = {
 }
 
 
-def _fetch_federal_register_page(term: str, page: int = 1, per_page: int = 20) -> list:
+def _fetch_federal_register_page(term: str, page: int = 1, per_page: int = 50) -> list:
     """Fetch one page of Federal Register results."""
     try:
         resp = requests.get(

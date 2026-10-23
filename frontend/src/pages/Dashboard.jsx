@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchOverview, fetchSectorDist, fetchRegionDist, fetchTrends, fetchCountries, fetchPolicies, BASE } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { FileText, Globe, Layers, Map, RotateCw, X } from "lucide-react";
+import PartnerLogos from "../components/PartnerBar";
+import { FileText, Globe, Layers, Map, RotateCw, X, Search } from "lucide-react";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area, CartesianGrid
@@ -67,12 +68,14 @@ export default function Dashboard() {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [countryPolicies, setCountryPolicies] = useState([]);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
+  const [sidebarSearch,   setSidebarSearch]   = useState("");
 
   // Close sidebar on Escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         setSelectedCountry(null);
+        setSidebarSearch("");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -89,6 +92,7 @@ export default function Dashboard() {
     if (policyCount <= 0) return;
 
     setSelectedCountry(targetCountry);
+    setSidebarSearch("");
     setLoadingPolicies(true);
 
     fetchPolicies({ country: targetCountry })
@@ -184,14 +188,23 @@ export default function Dashboard() {
     }
   };
 
+  const filteredPolicies = countryPolicies.filter(p => {
+    if (!sidebarSearch.trim()) return true;
+    const q = sidebarSearch.toLowerCase();
+    return (
+      (p.title && p.title.toLowerCase().includes(q)) ||
+      (p.sector && p.sector.toLowerCase().includes(q)) ||
+      (p.country && p.country.toLowerCase().includes(q)) ||
+      (p.summary && p.summary.toLowerCase().includes(q))
+    );
+  });
+
   if (loading) return <LoadingSpinner label="Loading intelligence data..." />;
 
   return (
     <div style={{
       flex: 1,
-      overflowY: "auto",
-      background: "var(--bg-deep)",
-      minHeight: "100vh"
+      background: "var(--bg-deep)"
     }}>
       <div className="page-container">
         {/* Page Header */}
@@ -855,13 +868,14 @@ export default function Dashboard() {
             </div>
           </div>
  
-         </div>
-       </div>
+          <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
+          </div>
+        </div>
 
       {/* Sidebar Panel Backdrop Blur */}
       {selectedCountry && (
         <div 
-          onClick={() => setSelectedCountry(null)}
+          onClick={() => { setSelectedCountry(null); setSidebarSearch(""); }}
           style={{
             position: "fixed",
             top: 0,
@@ -890,7 +904,7 @@ export default function Dashboard() {
           textAlign: "left"
         }}>
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#5c9e2e" }} />
@@ -903,7 +917,7 @@ export default function Dashboard() {
               </h2>
             </div>
             <button 
-              onClick={() => setSelectedCountry(null)}
+              onClick={() => { setSelectedCountry(null); setSidebarSearch(""); }}
               style={{
                 background: "none",
                 border: "none",
@@ -934,11 +948,45 @@ export default function Dashboard() {
             fontSize: "13px", 
             fontFamily: "DM Sans", 
             color: "var(--text-muted)", 
-            marginBottom: "24px",
+            marginBottom: "16px",
             borderBottom: "1px solid var(--border)",
             paddingBottom: "12px"
           }}>
-            Showing {countryPolicies.length} {countryPolicies.length === 1 ? 'policy' : 'policies'} from the database
+            Showing {filteredPolicies.length} of {countryPolicies.length} {countryPolicies.length === 1 ? 'policy' : 'policies'} from the database
+          </div>
+
+          {/* Search Bar inside Sidebar Panel */}
+          <div style={{ position: "relative", marginBottom: "20px" }}>
+            <Search 
+              size={16} 
+              color="var(--text-dim)" 
+              style={{ 
+                position: "absolute", 
+                left: 12, 
+                top: "50%", 
+                transform: "translateY(-50%)",
+                pointerEvents: "none"
+              }} 
+            />
+            <input
+              value={sidebarSearch}
+              onChange={e => setSidebarSearch(e.target.value)}
+              placeholder="Search policies..."
+              className="search-input-custom"
+              style={{
+                width: "100%",
+                height: 40,
+                border: "1px solid var(--border)",
+                borderRadius: "8px",
+                padding: "0 12px 0 38px",
+                outline: "none",
+                fontSize: "13px",
+                fontFamily: "'DM Sans', sans-serif",
+                background: "var(--bg-hover)",
+                color: "var(--text-main)",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+              }}
+            />
           </div>
 
           {/* Content */}
@@ -950,17 +998,18 @@ export default function Dashboard() {
                   Fetching policies...
                 </span>
               </div>
-            ) : countryPolicies.length === 0 ? (
+            ) : filteredPolicies.length === 0 ? (
               <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-muted)", fontFamily: "DM Sans" }}>
-                No active policies found for this region.
+                No matching policies found.
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {countryPolicies.map((policy) => (
+                {filteredPolicies.map((policy) => (
                   <div 
                     key={policy.id}
                     onClick={() => {
                       setSelectedCountry(null);
+                      setSidebarSearch("");
                       navigate(`/policies/${policy.id}`);
                     }}
                     style={{

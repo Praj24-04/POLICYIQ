@@ -133,6 +133,18 @@ export const fetchRecommendations = (policyId, topN = 5, weights = null) => {
   return get(url);
 };
 export const fetchMLStatus = () => get("/ml/status");
+export const rebuildMLIndex = () =>
+  fetch(`${BASE}/ml/rebuild-index`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+  }).then(async r => {
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || "Rebuild failed");
+    return data;
+  });
 export const fetchClusters = () => get(`/recommend/clusters/summary`);
 
 export const submitFeedback = (policyId, country, helpful) =>
@@ -289,5 +301,39 @@ export const deleteAdminSector = (id) =>
   }).then(async r => {
     const res = await r.json();
     if (!r.ok) throw new Error(res.detail || "Failed to delete sector");
+    return res;
+  });
+
+// ── Support Chat APIs ──────────────────────────────────────────────────────
+export const sendSupportMessage = (message) => postJson("/support/messages", { message });
+export const fetchSupportMessages = () => get("/support/messages");
+export const fetchAdminSupportMessages = () => get("/support/admin/messages");
+export const sendAdminReply = (userId, message) => postJson("/support/admin/reply", { user_id: userId, message });
+
+export const updateSupportStatus = (messageId, status) =>
+  fetch(`${BASE}/support/admin/messages/${messageId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to update status");
+    return res;
+  });
+
+export const updateUserSupportStatus = (userId, status) =>
+  fetch(`${BASE}/support/admin/user/${userId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  }).then(async r => {
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || "Failed to update status");
     return res;
   });

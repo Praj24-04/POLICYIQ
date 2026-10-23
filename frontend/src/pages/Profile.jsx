@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchHistory, changePassword, updateProfile, fetchSectors } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PartnerLogos from "../components/PartnerBar";
 import { 
   User, Shield, Mail, Calendar, UploadCloud, 
   FileText, GitCompare, Sparkles, CheckCircle2 
@@ -620,6 +621,7 @@ export default function Profile({ user, onUserUpdate }) {
           </div>
 
         </div>
+        <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
       </div>
     </div>
   );

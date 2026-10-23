@@ -3,14 +3,17 @@ import {
   Shield, Users, Activity, Server, Search, ChevronLeft, ChevronRight,
   Trash2, ShieldCheck, ShieldOff, Ban, UserCheck, Clock, Upload,
   GitCompare, FileText, LogIn, KeyRound, Globe2, AlertTriangle, Database,
-  Cpu, BarChart3, RefreshCw, UserPlus, Plus, Play, ExternalLink, CheckCircle
+  Cpu, BarChart3, RefreshCw, UserPlus, Plus, Play, ExternalLink, CheckCircle,
+  MessageSquare, Send, MessageCircle
 } from "lucide-react";
 import {
   fetchAdminStats, fetchAdminUsers, fetchAdminSystem,
   fetchActivityLogs, updateUserRole, deleteUser, blockUser, createAdminUser,
   fetchTrustedSources, createTrustedSource, updateTrustedSourceStatus,
   deleteTrustedSource, testTrustedSource,
-  fetchAdminSectors, createAdminSector, updateAdminSector, deleteAdminSector
+  fetchAdminSectors, createAdminSector, updateAdminSector, deleteAdminSector,
+  rebuildMLIndex,
+  fetchAdminSupportMessages, sendAdminReply, updateUserSupportStatus
 } from "../services/api";
 
 const ACTION_COLORS = {
@@ -496,12 +499,27 @@ function ActivityTab() {
 function SystemTab() {
   const [sys, setSys] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
 
   const load = () => {
     setLoading(true);
     fetchAdminSystem().then(d => { if (d) setSys(d); setLoading(false); });
   };
   useEffect(load, []);
+
+  const handleRebuildIndex = async () => {
+    if (!window.confirm("Are you sure you want to rebuild the search index? This will drop the ChromaDB collection and perform a fresh sync of all active policies.")) return;
+    setRebuilding(true);
+    try {
+      await rebuildMLIndex();
+      alert("Successfully rebuilt ChromaDB index!");
+      load();
+    } catch (e) {
+      alert("Failed to rebuild index: " + e.message);
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   const statusDot = (ok) => (
     <div style={{ width: 8, height: 8, borderRadius: "50%", background: ok ? "#10b981" : "#ef4444", boxShadow: `0 0 8px ${ok ? "#10b981" : "#ef4444"}` }} />
@@ -556,11 +574,32 @@ function SystemTab() {
             {statusDot(sys?.ml_status?.fitted)}
             <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "JetBrains Mono", color: "var(--text-main)" }}>ML ENGINE</span>
           </div>
-          <div style={{ fontSize: 13, color: sys?.ml_status?.fitted ? "#10b981" : "#f59e0b" }}>
-            {sys?.ml_status?.fitted ? "Fitted & Active" : "Not fitted"}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
-            {sys?.ml_status?.countries || 0} country embeddings
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontSize: 13, color: sys?.ml_status?.fitted ? "#10b981" : "#f59e0b" }}>
+                {sys?.ml_status?.fitted ? "Fitted & Active" : "Not fitted"}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
+                {sys?.ml_status?.countries || 0} country embeddings
+              </div>
+            </div>
+            <button
+              onClick={handleRebuildIndex}
+              disabled={rebuilding}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                background: rebuilding ? "var(--bg-hover)" : "rgba(92, 158, 46, 0.15)",
+                border: "1px solid rgba(92, 158, 46, 0.4)",
+                color: "var(--text-main)",
+                fontSize: 10,
+                fontFamily: "JetBrains Mono",
+                cursor: rebuilding ? "not-allowed" : "pointer",
+                fontWeight: 600
+              }}
+            >
+              {rebuilding ? "Rebuilding..." : "Rebuild Index"}
+            </button>
           </div>
         </div>
       </div>
@@ -1499,6 +1538,363 @@ function SourcesTab() {
   );
 }
 
+// ── Support Queries Tab ───────────────────────────────────────────────────
+function SupportTab() {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [error, setError] = useState(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchAdminSupportMessages();
+      if (Array.isArray(data)) {
+        setMessages(data);
+      }
+    } catch (err) {
+      setError("Failed to fetch support queries.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const conversationsMap = {};
+  messages.forEach((msg) => {
+    const uid = msg.user_id;
+    if (!conversationsMap[uid]) {
+      conversationsMap[uid] = {
+        user_id: uid,
+        user_name: msg.user_name || "Unknown User",
+        user_email: msg.user_email || "no-email",
+        status: msg.status || "open",
+        latest_message: msg.message,
+        latest_date: msg.created_at,
+        messages: []
+      };
+    }
+    conversationsMap[uid].messages.push(msg);
+    conversationsMap[uid].latest_message = msg.message;
+    conversationsMap[uid].latest_date = msg.created_at;
+    if (msg.status === "open") {
+      conversationsMap[uid].status = "open";
+    }
+  });
+
+  const conversationList = Object.values(conversationsMap).filter((c) => {
+    if (filterStatus === "open") return c.status === "open";
+    if (filterStatus === "resolved") return c.status === "resolved";
+    return true;
+  });
+
+  useEffect(() => {
+    if (conversationList.length > 0 && (!selectedUserId || !conversationsMap[selectedUserId])) {
+      setSelectedUserId(conversationList[0].user_id);
+    }
+  }, [messages, filterStatus]);
+
+  const activeConv = selectedUserId ? conversationsMap[selectedUserId] : null;
+
+  const handleSendReply = async (e) => {
+    e.preventDefault();
+    if (!selectedUserId || !replyText.trim() || sending) return;
+
+    setSending(true);
+    try {
+      await sendAdminReply(selectedUserId, replyText.trim());
+      setReplyText("");
+      await loadData();
+    } catch (err) {
+      alert(err.message || "Failed to send reply");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!selectedUserId || !activeConv) return;
+    const newStatus = activeConv.status === "open" ? "resolved" : "open";
+    try {
+      await updateUserSupportStatus(selectedUserId, newStatus);
+      await loadData();
+    } catch (err) {
+      alert("Failed to update status");
+    }
+  };
+
+  if (loading) {
+    return <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontFamily: "DM Sans" }}>Loading support conversations...</div>;
+  }
+
+  return (
+    <div className="fade-up" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {["all", "open", "resolved"].map((st) => (
+            <button
+              key={st}
+              onClick={() => setFilterStatus(st)}
+              style={{
+                background: filterStatus === st ? "#5c9e2e" : "var(--bg-card)",
+                color: filterStatus === st ? "#ffffff" : "var(--text-muted)",
+                border: "1px solid var(--border)",
+                borderRadius: 6,
+                padding: "6px 14px",
+                fontSize: 12,
+                fontFamily: "DM Sans",
+                cursor: "pointer",
+                textTransform: "capitalize",
+                fontWeight: filterStatus === st ? 600 : 400
+              }}
+            >
+              {st} ({Object.values(conversationsMap).filter(c => st === "all" ? true : c.status === st).length})
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={loadData}
+          style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            padding: "6px 12px",
+            color: "var(--text-main)",
+            fontSize: 12,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}
+        >
+          <RefreshCw size={13} /> Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ padding: 12, background: "rgba(244, 63, 94, 0.1)", border: "1px solid rgba(244, 63, 94, 0.2)", borderRadius: 6, color: "#f43f5e", fontSize: 12 }}>
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16, minHeight: 480 }}>
+        <div style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column"
+        }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--bg-hover)", fontSize: 12, fontWeight: 700, fontFamily: "JetBrains Mono" }}>
+            CLIENT THREADS ({conversationList.length})
+          </div>
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {conversationList.length === 0 ? (
+              <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>
+                No support queries matching filter.
+              </div>
+            ) : (
+              conversationList.map((conv) => {
+                const isSelected = selectedUserId === conv.user_id;
+                return (
+                  <div
+                    key={conv.user_id}
+                    onClick={() => setSelectedUserId(conv.user_id)}
+                    style={{
+                      padding: "12px 14px",
+                      borderBottom: "1px solid var(--border)",
+                      background: isSelected ? "var(--bg-hover)" : "transparent",
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-main)", fontFamily: "DM Sans" }}>
+                        {conv.user_name}
+                      </span>
+                      <span style={{
+                        fontSize: 10,
+                        fontFamily: "JetBrains Mono",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        background: conv.status === "open" ? "rgba(92, 158, 46, 0.15)" : "var(--bg-hover)",
+                        color: conv.status === "open" ? "#5c9e2e" : "var(--text-dim)"
+                      }}>
+                        {conv.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "JetBrains Mono", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {conv.user_email}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "DM Sans", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
+                      {conv.latest_message}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden"
+        }}>
+          {activeConv ? (
+            <>
+              <div style={{
+                padding: "14px 18px",
+                borderBottom: "1px solid var(--border)",
+                background: "var(--bg-hover)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-main)", fontFamily: "DM Sans" }}>
+                    {activeConv.user_name}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "JetBrains Mono" }}>
+                    {activeConv.user_email} · User ID: {activeConv.user_id}
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleStatus}
+                  style={{
+                    background: activeConv.status === "open" ? "rgba(92, 158, 46, 0.1)" : "var(--bg-hover)",
+                    border: "1px solid " + (activeConv.status === "open" ? "rgba(92, 158, 46, 0.3)" : "var(--border)"),
+                    color: activeConv.status === "open" ? "#5c9e2e" : "var(--text-muted)",
+                    borderRadius: 6,
+                    padding: "6px 12px",
+                    fontSize: 11,
+                    fontFamily: "JetBrains Mono",
+                    cursor: "pointer"
+                  }}
+                >
+                  Status: {activeConv.status.toUpperCase()} (Click to toggle)
+                </button>
+              </div>
+
+              <div style={{
+                flex: 1,
+                padding: 16,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                background: "var(--bg-deep)"
+              }}>
+                {activeConv.messages.map((m) => {
+                  const isAdmin = m.sender === "admin";
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        alignSelf: isAdmin ? "flex-end" : "flex-start",
+                        maxWidth: "80%",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isAdmin ? "flex-end" : "flex-start"
+                      }}
+                    >
+                      <span style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 2, fontFamily: "JetBrains Mono" }}>
+                        {isAdmin ? "Admin (You)" : activeConv.user_name} · {new Date(m.created_at).toLocaleString()}
+                      </span>
+                      <div style={{
+                        padding: "10px 14px",
+                        borderRadius: isAdmin ? "10px 10px 2px 10px" : "10px 10px 10px 2px",
+                        background: isAdmin ? "#5c9e2e" : "var(--bg-card)",
+                        color: isAdmin ? "#ffffff" : "var(--text-main)",
+                        border: isAdmin ? "none" : "1px solid var(--border)",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        fontFamily: "DM Sans",
+                        wordBreak: "break-word"
+                      }}>
+                        {m.message}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <form
+                onSubmit={handleSendReply}
+                style={{
+                  padding: 12,
+                  borderTop: "1px solid var(--border)",
+                  background: "var(--bg-card)",
+                  display: "flex",
+                  gap: 10
+                }}
+              >
+                <input
+                  type="text"
+                  placeholder="Type an admin reply..."
+                  value={replyText}
+                  maxLength={2000}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  disabled={sending}
+                  style={{
+                    flex: 1,
+                    background: "var(--bg-hover)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 6,
+                    padding: "8px 12px",
+                    fontSize: 13,
+                    color: "var(--text-main)",
+                    fontFamily: "DM Sans",
+                    outline: "none"
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !replyText.trim()}
+                  style={{
+                    background: "#5c9e2e",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "8px 16px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: "DM Sans",
+                    cursor: sending || !replyText.trim() ? "not-allowed" : "pointer",
+                    opacity: sending || !replyText.trim() ? 0.5 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  <Send size={14} /> {sending ? "Sending..." : "Reply"}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13, fontFamily: "DM Sans" }}>
+              Select a client conversation on the left to view messages and reply.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Admin Dashboard ───────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [tab, setTab] = useState("overview");
@@ -1509,6 +1905,7 @@ export default function AdminDashboard() {
   const tabs = [
     { id: "overview", icon: BarChart3, label: "Overview" },
     { id: "users", icon: Users, label: "Users" },
+    { id: "support", icon: MessageSquare, label: "Support Queries" },
     { id: "sectors", icon: Database, label: "Sectors Registry" },
     { id: "sources", icon: Globe2, label: "Trusted Sources" },
     { id: "activity", icon: Activity, label: "Activity Log" },
@@ -1552,6 +1949,7 @@ export default function AdminDashboard() {
       <div style={{ marginTop: 20 }}>
         {tab === "overview" && <OverviewTab stats={stats} />}
         {tab === "users" && <UsersTab />}
+        {tab === "support" && <SupportTab />}
         {tab === "sectors" && <SectorsTab />}
         {tab === "sources" && <SourcesTab />}
         {tab === "activity" && <ActivityTab />}

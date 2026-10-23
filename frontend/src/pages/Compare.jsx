@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { fetchPolicies, comparePolicies, getToken, BASE, fetchSectors } from "../services/api";
 import SectorBadge from "../components/SectorBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PartnerLogos from "../components/PartnerBar";
 import { GitCompare, CheckCircle2, XCircle, Lightbulb, RotateCcw, FileDown, Search } from "lucide-react";
 
 export default function Compare() {
@@ -1114,7 +1115,7 @@ export default function Compare() {
                 borderRadius: "8px",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.08)"
               }}>
-                <div style={{ display: "flex", gap: "24px" }}>
+                <div className="compare-philosophy-layout">
                   {/* Left philosophy column */}
                   <div style={{ flex: 1 }}>
                     <div style={{
@@ -1152,7 +1153,7 @@ export default function Compare() {
                   </div>
 
                   {/* Vertical Divider */}
-                  <div style={{ width: "1px", background: "var(--border)", backgroundColor: "var(--border)" }} />
+                  <div className="compare-philosophy-divider" style={{ width: "1px", background: "var(--border)" }} />
 
                   {/* Right philosophy column */}
                   <div style={{ flex: 1 }}>
@@ -1455,6 +1456,7 @@ export default function Compare() {
           </div>
         )}
 
+        <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
       </div>
     </div>
   );

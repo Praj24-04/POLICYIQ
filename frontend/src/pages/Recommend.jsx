@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPolicies, fetchRecommendations, submitFeedback, generatePolicyTemplate, getToken, BASE, fetchSectors } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PartnerLogos from "../components/PartnerBar";
 import { Sparkles, ExternalLink, Copy, ThumbsUp, ThumbsDown, Target, Shield, Search, FileDown } from "lucide-react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 import { jsPDF } from "jspdf";
@@ -440,169 +441,187 @@ export default function Recommend() {
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div style={{ borderTop: "1px solid var(--border)", margin: "16px 0" }} />
-
-                {/* Policy List */}
-                <div style={{ 
-                  display: "flex", 
-                  flexDirection: "column", 
-                  gap: "8px", 
-                  maxHeight: "520px", 
-                  overflowY: "auto", 
-                  paddingRight: "4px" 
-                }}>
-                  {filtered.map(p => {
-                    const isSelected = selected?.id === p.id;
-                    return (
-                      <div 
-                        key={p.id}
-                        onClick={() => handleSelect(p)}
-                        onMouseEnter={() => setHoveredPolicy(p.id)}
-                        onMouseLeave={() => setHoveredPolicy(null)}
-                        style={{
-                          background: isSelected ? "var(--stat-bg)" : "var(--bg-card)",
-                          border: isSelected 
-                            ? "2px solid var(--cyan)" 
-                            : hoveredPolicy === p.id 
-                              ? "1px solid var(--border-lit)" 
-                              : "1px solid var(--border)",
-                          borderRadius: "8px",
-                          padding: "14px 16px",
-                          cursor: "pointer",
-                          transition: "all 0.15s ease",
-                          display: "flex",
-                          flexDirection: "column"
-                        }}
-                      >
-                        {/* Top Row */}
-                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                          <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
-                            {/* Avatar */}
-                            <div style={{
-                              width: "32px",
-                              height: "32px",
-                              borderRadius: "6px",
-                              background: "var(--bg-hover)",
-                              border: "1px solid var(--border)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0
-                            }}>
-                              <span style={{ fontSize: "14px", fontFamily: "DM Sans", color: "var(--text-muted)", fontWeight: "bold" }}>
-                                {p.title ? p.title.charAt(0).toUpperCase() : "P"}
-                              </span>
-                            </div>
-
-                            {/* Title */}
-                            <span style={{
-                              fontFamily: "DM Sans",
-                              fontWeight: 500,
-                              fontSize: "15px",
-                              color: "var(--text-main)",
-                              margin: "0 12px",
-                              flex: 1,
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              lineHeight: "1.3"
-                            }}>
-                              {p.title}
-                            </span>
-                          </div>
-
-                          {/* Sector badge */}
-                          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
-                            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--cyan)" }} />
-                            <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>
-                              {p.sector}
-                            </span>
-                          </div>
-
-                          {/* Database Info Link */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              nav(`/policies/${p.id}`);
-                            }}
-                            title="View source database page"
-                            style={{
-                              marginLeft: "8px",
-                              background: "none",
-                              border: "none",
-                              padding: "4px",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              color: "var(--text-muted)",
-                              borderRadius: "4px",
-                              transition: "all 0.15s ease",
-                              outline: "none"
-                            }}
-                            className="db-link-btn"
-                          >
-                            <ExternalLink size={12} />
-                          </button>
-                        </div>
-
-                        {/* Bottom Row */}
-                        <div style={{ 
-                          display: "flex", 
-                          alignItems: "center", 
-                          gap: "8px", 
-                          marginTop: "8px" 
-                        }}>
-                          <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", textTransform: "uppercase" }}>
-                            {p.country}
-                          </span>
-                          {p.year && (
-                            <>
-                              <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>·</span>
-                              <span style={{ fontSize: "12px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>
-                                {p.year}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
 
-              {/* Right Panel: Empty State */}
-              <div>
-                <div style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  padding: "54px 48px",
-                  textAlign: "center"
+              {/* Right Panel: Grid of Policies */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Header row */}
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between", 
+                  marginBottom: "16px",
+                  paddingBottom: "8px",
+                  borderBottom: "1px solid var(--border)"
                 }}>
-                  <Target size={40} color="var(--border)" style={{ display: "block", margin: "0 auto 16px" }} />
-                  <h3 style={{
-                    fontFamily: "DM Sans",
-                    fontSize: "18px",
-                    fontWeight: 600,
-                    color: "var(--text-main)",
-                    marginBottom: "8px"
+                  <h3 style={{ 
+                    fontFamily: "DM Sans", 
+                    fontSize: "14px", 
+                    fontWeight: 600, 
+                    color: "var(--text-muted)", 
+                    margin: 0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em"
                   }}>
-                    Select a policy to begin
+                    {sector ? `${sector} Policies` : "All Source Policies"}
                   </h3>
-                  <p style={{
-                    fontFamily: "DM Sans",
-                    fontSize: "15px",
-                    color: "var(--text-muted)",
-                    lineHeight: "1.65",
-                    maxWidth: "340px",
-                    margin: "0 auto"
+                  <span style={{ 
+                    fontSize: "11px", 
+                    fontFamily: "JetBrains Mono", 
+                    color: "#5c9e2e", 
+                    background: "rgba(92, 158, 46, 0.08)", 
+                    border: "1px solid rgba(92, 158, 46, 0.15)",
+                    borderRadius: "4px", 
+                    padding: "3px 8px",
+                    fontWeight: 600
                   }}>
-                    The ML engine will identify countries with the highest adoption need based on regulatory gaps and contextual alignment.
-                  </p>
+                    {filtered.length} Indexed
+                  </span>
                 </div>
+
+                {filtered.length === 0 ? (
+                  <div style={{
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "8px",
+                    padding: "48px",
+                    textAlign: "center"
+                  }}>
+                    <Target size={36} color="var(--text-dim)" style={{ display: "block", margin: "0 auto 12px", opacity: 0.5 }} />
+                    <h4 style={{ fontFamily: "DM Sans", fontSize: "16px", fontWeight: 600, color: "var(--text-main)", marginBottom: "4px" }}>
+                      No matching policies
+                    </h4>
+                    <p style={{ fontFamily: "DM Sans", fontSize: "14px", color: "var(--text-muted)", margin: 0 }}>
+                      Try adjusting your search query or choosing another sector filter.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
+                    gap: "16px", 
+                    maxHeight: "560px", 
+                    overflowY: "auto", 
+                    paddingRight: "6px" 
+                  }}>
+                    {filtered.map(p => {
+                      const isHovered = hoveredPolicy === p.id;
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => handleSelect(p)}
+                          onMouseEnter={() => setHoveredPolicy(p.id)}
+                          onMouseLeave={() => setHoveredPolicy(null)}
+                          style={{
+                            background: "var(--bg-card)",
+                            border: isHovered ? "1px solid #5c9e2e" : "1px solid var(--border)",
+                            borderRadius: "8px",
+                            padding: "16px",
+                            cursor: "pointer",
+                            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            boxShadow: isHovered ? "0 4px 12px rgba(92, 158, 46, 0.06)" : "none",
+                            transform: isHovered ? "translateY(-2px)" : "translateY(0)"
+                          }}
+                        >
+                          <div>
+                            {/* Card Header: Sector & External Link */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                              <span style={{ 
+                                fontSize: "11px", 
+                                fontFamily: "JetBrains Mono", 
+                                color: "var(--text-muted)",
+                                background: "var(--bg-hover)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "4px",
+                                padding: "2px 6px",
+                                textTransform: "uppercase"
+                              }}>
+                                {p.sector}
+                              </span>
+                              
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  nav(`/policies/${p.id}`);
+                                }}
+                                title="View source database page"
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  padding: "4px",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  color: isHovered ? "#5c9e2e" : "var(--text-dim)",
+                                  borderRadius: "4px",
+                                  transition: "all 0.15s ease",
+                                  outline: "none"
+                                }}
+                              >
+                                <ExternalLink size={13} />
+                              </button>
+                            </div>
+
+                            {/* Card Title */}
+                            <h4 style={{
+                              fontFamily: "DM Sans",
+                              fontWeight: 600,
+                              fontSize: "14px",
+                              color: "var(--text-main)",
+                              margin: "0 0 16px 0",
+                              lineHeight: "1.45",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis"
+                            }}>
+                              {p.title}
+                            </h4>
+                          </div>
+
+                          {/* Card Footer */}
+                          <div style={{ 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "space-between",
+                            borderTop: "1px solid var(--border-lit)",
+                            paddingTop: "10px",
+                            marginTop: "8px"
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)", textTransform: "uppercase" }}>
+                                {p.country}
+                              </span>
+                              {p.year && (
+                                <>
+                                  <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-dim)" }}>·</span>
+                                  <span style={{ fontSize: "11px", fontFamily: "JetBrains Mono", color: "var(--text-muted)" }}>
+                                    {p.year}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            
+                            {/* Action hint */}
+                            <span style={{
+                              fontSize: "10px",
+                              fontFamily: "JetBrains Mono",
+                              color: isHovered ? "#5c9e2e" : "transparent",
+                              transition: "color 0.15s ease",
+                              fontWeight: 600
+                            }}>
+                              SELECT →
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </>
@@ -1095,14 +1114,7 @@ export default function Recommend() {
                       </div>
 
                       {/* Action buttons row */}
-                      <div style={{
-                        display: "flex",
-                        gap: "8px",
-                        marginTop: "16px",
-                        justifyContent: "flex-end",
-                        borderTop: "1px solid var(--border)",
-                        paddingTop: "16px"
-                      }}>
+                      <div className="weights-actions-row">
                         <button 
                           onClick={handleResetWeights}
                           style={{
@@ -1533,60 +1545,62 @@ export default function Recommend() {
                             </button>
 
                             {/* Feedback buttons */}
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }} className="feedback-container">
                               <span style={{ fontSize: "12px", fontFamily: "DM Sans", color: "#9ca3af", marginRight: "8px" }}>
                                 Was this relevant?
                               </span>
-                              <button 
-                                onClick={() => handleFeedback(rec.country, true)}
-                                onMouseEnter={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_pos`]: true }))}
-                                onMouseLeave={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_pos`]: false }))}
-                                style={{
-                                  border: feedbackGiven[rec.country] === "positive" ? "1px solid #5c9e2e" : "1px solid #e8e8e8",
-                                  background: feedbackGiven[rec.country] === "positive" 
-                                    ? "#f0f7e8" 
-                                    : hoveredFeedbackBtn[`${rec.country}_pos`] 
-                                      ? "#fafafa" 
-                                      : "white",
-                                  color: feedbackGiven[rec.country] === "positive" ? "#3d6b1e" : "#6b7280",
-                                  fontSize: "12px",
-                                  fontFamily: "DM Sans",
-                                  padding: "6px 12px",
-                                  borderRadius: "4px",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  transition: "all 0.15s ease"
-                                }}
-                              >
-                                <ThumbsUp size={12} style={{ marginRight: "4px" }} />
-                                Helpful
-                              </button>
-                              <button 
-                                onClick={() => handleFeedback(rec.country, false)}
-                                onMouseEnter={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_neg`]: true }))}
-                                onMouseLeave={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_neg`]: false }))}
-                                style={{
-                                  border: feedbackGiven[rec.country] === "negative" ? "1px solid #fecaca" : "1px solid #e8e8e8",
-                                  background: feedbackGiven[rec.country] === "negative" 
-                                    ? "#fef2f2" 
-                                    : hoveredFeedbackBtn[`${rec.country}_neg`] 
-                                      ? "#fafafa" 
-                                      : "white",
-                                  color: feedbackGiven[rec.country] === "negative" ? "#dc2626" : "#6b7280",
-                                  fontSize: "12px",
-                                  fontFamily: "DM Sans",
-                                  padding: "6px 12px",
-                                  borderRadius: "4px",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  transition: "all 0.15s ease"
-                                }}
-                              >
-                                <ThumbsDown size={12} style={{ marginRight: "4px" }} />
-                                Not Relevant
-                              </button>
+                              <div className="feedback-buttons-wrapper">
+                                <button 
+                                  onClick={() => handleFeedback(rec.country, true)}
+                                  onMouseEnter={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_pos`]: true }))}
+                                  onMouseLeave={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_pos`]: false }))}
+                                  style={{
+                                    border: feedbackGiven[rec.country] === "positive" ? "1px solid #5c9e2e" : "1px solid #e8e8e8",
+                                    background: feedbackGiven[rec.country] === "positive" 
+                                      ? "#f0f7e8" 
+                                      : hoveredFeedbackBtn[`${rec.country}_pos`] 
+                                        ? "#fafafa" 
+                                        : "white",
+                                    color: feedbackGiven[rec.country] === "positive" ? "#3d6b1e" : "#6b7280",
+                                    fontSize: "12px",
+                                    fontFamily: "DM Sans",
+                                    padding: "6px 12px",
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    transition: "all 0.15s ease"
+                                  }}
+                                >
+                                  <ThumbsUp size={12} style={{ marginRight: "4px" }} />
+                                  Helpful
+                                </button>
+                                <button 
+                                  onClick={() => handleFeedback(rec.country, false)}
+                                  onMouseEnter={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_neg`]: true }))}
+                                  onMouseLeave={() => setHoveredFeedbackBtn(prev => ({ ...prev, [`${rec.country}_neg`]: false }))}
+                                  style={{
+                                    border: feedbackGiven[rec.country] === "negative" ? "1px solid #fecaca" : "1px solid #e8e8e8",
+                                    background: feedbackGiven[rec.country] === "negative" 
+                                      ? "#fef2f2" 
+                                      : hoveredFeedbackBtn[`${rec.country}_neg`] 
+                                        ? "#fafafa" 
+                                        : "white",
+                                    color: feedbackGiven[rec.country] === "negative" ? "#dc2626" : "#6b7280",
+                                    fontSize: "12px",
+                                    fontFamily: "DM Sans",
+                                    padding: "6px 12px",
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    transition: "all 0.15s ease"
+                                  }}
+                                >
+                                  <ThumbsDown size={12} style={{ marginRight: "4px" }} />
+                                  Not Relevant
+                                </button>
+                              </div>
                             </div>
                           </div>
 
@@ -1862,6 +1876,7 @@ export default function Recommend() {
         </div>
       )}
 
+      <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
     </div>
   );
 }

@@ -198,7 +198,7 @@ def _parse_tags(raw_tags):
     return [t.strip() for t in raw_tags.split(",") if t.strip()]
 
 
-def load_policies(sector=None, region=None, search=None, status=None, country=None):
+def load_policies(sector=None, region=None, search=None, status=None, country=None, page=None, limit=None):
     conn = get_connection()
     query = """
         SELECT id, title, sector, region, country, 
@@ -228,6 +228,31 @@ def load_policies(sector=None, region=None, search=None, status=None, country=No
             )
         """
         params.extend([search, f"%{search}%", f"%{search}%"])
+
+    # Country filtering happens at SQL level when no NER cache lookup is needed
+    # For NER-aware country matching, we still filter in Python
+    use_country_filter_python = bool(country)
+
+    # Add ordering for consistent pagination
+    query += " ORDER BY year DESC NULLS LAST, title ASC"
+
+    # For server-side pagination: get total count first, then apply LIMIT/OFFSET
+    use_pagination = page is not None and limit is not None
+    total_count = None
+
+    if use_pagination and not use_country_filter_python:
+        # Fast path: count + paginate at SQL level (no Python country filter)
+        count_query = query.replace(
+            "SELECT id, title, sector, region, country, \n               SUBSTRING(content FROM 1 FOR 400) AS content, \n               tags, status, year, version, source_url, \n               key_requirements, timeline_phases, extracted_countries_cache,\n               cluster_id, cluster_confidence, embedding_model, last_embedded_at",
+            "SELECT COUNT(*)"
+        )
+        # Remove ORDER BY from count query for speed
+        count_query = count_query.split(" ORDER BY")[0]
+        total_count = conn.execute(count_query, params).fetchone()[0]
+
+        offset = (page - 1) * limit
+        query += " LIMIT %s OFFSET %s"
+        params.extend([limit, offset])
 
     rows = conn.execute(query, params).fetchall()
 
@@ -272,6 +297,21 @@ def load_policies(sector=None, region=None, search=None, status=None, country=No
         result.append(p)
 
     conn.close()
+
+    # Return paginated response if pagination was requested
+    if use_pagination:
+        if use_country_filter_python:
+            # Python-side country filter — paginate in Python
+            total_count = len(result)
+            offset = (page - 1) * limit
+            result = result[offset:offset + limit]
+        return {
+            "data": result,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+        }
+
     return result
 
 

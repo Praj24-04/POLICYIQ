@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form, Response
-from app.services.pdf_service import extract_text_from_pdf, extract_policy_metadata
+from app.services.pdf_service import extract_text_from_pdf, extract_policy_metadata, validate_policy_text
 from app.services.nlp_service import extract_countries
 from app.ml.recommender_v2 import get_recommendations_for_text
 from app.auth import get_current_user, log_activity
@@ -29,6 +29,11 @@ async def upload_policy_pdf(
     
     if len(text) < 100:
         raise HTTPException(status_code=400, detail="Could not extract enough text from PDF.")
+    
+    # Validate that it is a policy document
+    is_valid, error_msg = validate_policy_text(text)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
     
     # Extract metadata
     metadata = extract_policy_metadata(text)

@@ -135,22 +135,31 @@ def post_process_generated_document(result: dict, context: dict) -> dict:
     return result
 
 
+def _clean_tag(tag):
+    """Strip residue brackets, braces, and quotes from individual tag strings."""
+    if not isinstance(tag, str):
+        return str(tag).strip()
+    return tag.strip().strip('{}[]\'\"\'\"').strip()
+
+
 def _parse_list(value):
     if value is None:
         return []
     if isinstance(value, list):
-        return value
+        return [_clean_tag(t) for t in value if t]
     if isinstance(value, tuple):
-        return list(value)
+        return [_clean_tag(t) for t in value if t]
     if isinstance(value, str):
         value = value.strip()
         if not value:
             return []
         try:
             parsed = json.loads(value)
-            return parsed if isinstance(parsed, list) else [parsed]
+            if isinstance(parsed, list):
+                return [_clean_tag(t) for t in parsed if t]
+            return [_clean_tag(parsed)]
         except json.JSONDecodeError:
-            return [item.strip() for item in value.split(",") if item.strip()]
+            return [_clean_tag(item) for item in value.split(",") if item.strip()]
     return []
 
 def build_generation_context(country: str, sector: str) -> dict:

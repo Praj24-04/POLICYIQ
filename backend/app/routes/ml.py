@@ -90,3 +90,14 @@ async def trigger_embed(request: Request, admin_user: dict = Depends(get_admin_u
         "message": f"Successfully triggered embedding. Embedded {embedded_cnt} policies.",
         "policies_embedded": embedded_cnt
     }
+
+
+@router.post("/rebuild-index")
+async def trigger_rebuild_index(admin_user: dict = Depends(get_admin_user)):
+    try:
+        from app.ml.vector_store import rebuild_chroma_index
+        import asyncio
+        await asyncio.to_thread(rebuild_chroma_index)
+        return {"message": "Successfully rebuilt ChromaDB search index."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to rebuild index: {str(e)}")

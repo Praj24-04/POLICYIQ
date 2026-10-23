@@ -1,5 +1,16 @@
 import sys
 import numpy as np
+from pathlib import Path
+from datetime import datetime
+
+# Setup paths to ensure we can import app modules properly
+_backend_root = Path(__file__).parent.parent.parent
+if str(_backend_root) not in sys.path:
+    sys.path.insert(0, str(_backend_root))
+
+from app.database import get_connection
+from app.ml.embedding_store import get_embedding
+
 try:
     import chromadb
     chroma_path = _backend_root / "data" / "chroma_db"
@@ -13,8 +24,6 @@ except Exception as e:
     client = None
     collection = None
     print(f"[WARN] ChromaDB initialization skipped/failed: {e}")
-    client = None
-    collection = None
 
 
 def _parse_db_vector(val) -> np.ndarray or None:
@@ -258,6 +267,17 @@ def semantic_search(
 
     return matches
 
+
+def delete_policy_from_chroma(policy_id: str):
+    """Deletes one policy from the ChromaDB policies_v2 collection."""
+    if collection is None:
+        print("[WARN] Chroma collection is not initialized. Skipping deletion.")
+        return
+    try:
+        collection.delete(ids=[str(policy_id)])
+        print(f"[INFO] Deleted policy {policy_id} from ChromaDB.")
+    except Exception as e:
+        print(f"[ERROR] Failed to delete policy {policy_id} from ChromaDB: {e}")
 
 
 # 6. Function to drop and recreate ChromaDB collection

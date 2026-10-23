@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchSectorDist, fetchRegionDist, fetchTrends, fetchCountries, fetchStatus, fetchFeedbackSummary } from "../services/api";
 import LoadingSpinner from "../components/LoadingSpinner";
+import PartnerLogos from "../components/PartnerBar";
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PieChart, Pie, Cell,
@@ -513,6 +514,7 @@ export default function Analytics() {
           </div>
         )}
 
+        <PartnerLogos className="partner-logos-footer" showDivider={false} label="powered by" />
       </div>
     </div>
   );
