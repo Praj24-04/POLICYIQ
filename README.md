@@ -1,12 +1,4 @@
-# ⚡ PolicyIQ — Global Regulatory Intelligence & Policy Topology Engine
-
-```
- ____   ___  _     ___ ______   _____ ___  
-|  _ \ / _ \| |   |_ _/ ___\ \ / /_ _/ _ \ 
-| |_) | | | | |    | | |    \ V / | | | | |
-|  __/| |_| | |___ | | |___  | |  | | |_| |
-|_|    \___/|_____|___|____| |_| |___\__\_\[ HYBRID NEURAL REGULATORY GRAPH & MCDA RECOMMENDER...]
-```
+# PolicyIQ : Global Regulatory Intelligence & Policy Topology Engine
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776ab.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
